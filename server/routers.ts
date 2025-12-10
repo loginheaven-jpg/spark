@@ -740,13 +740,13 @@ export const appRouter = router({
 
         // 3. 그 외 (일반 참여자/비로그인): 이름 마스킹, 이메일/전화번호 숨김
         return participants.map(p => {
-          let maskedName = p.name;
-          if (p.name.length > 2) {
+          let maskedName = p.name || '알수없음';
+          if (maskedName.length > 2) {
             // 3글자 이상: 김철수 -> 김*수
-            maskedName = p.name[0] + '*'.repeat(p.name.length - 2) + p.name[p.name.length - 1];
-          } else if (p.name.length === 2) {
+            maskedName = maskedName[0] + '*'.repeat(maskedName.length - 2) + maskedName[maskedName.length - 1];
+          } else if (maskedName.length === 2) {
             // 2글자: 이영 -> 이*
-            maskedName = p.name[0] + '*';
+            maskedName = maskedName[0] + '*';
           }
 
           return {
