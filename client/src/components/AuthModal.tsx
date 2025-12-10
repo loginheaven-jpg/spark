@@ -178,7 +178,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
                 className="p-0 h-auto"
                 onClick={() => setMode("register")}
               >
-                회원가입
+                30초 회원가입
               </Button>
             </div>
           </form>
@@ -279,7 +279,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
                 onChange={(e) => setRegisterAccountNumber(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                모임개설자만 필요 (참가비 입금받을 계좌)
+                유료모임 개설자만 필요 (참가비 입금받을 계좌)
               </p>
             </div>
 

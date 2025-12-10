@@ -252,7 +252,7 @@ export default function Home() {
                         </div>
                       )}
                       <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <DollarSign className="h-4 w-4" />
+                        <div className="h-4 w-4 flex items-center justify-center font-bold text-xs bg-slate-100 rounded-full border border-slate-300">₩</div>
                         <span>{event.fee === 0 ? "무료" : `${event.fee.toLocaleString()}원`}</span>
                       </div>
 

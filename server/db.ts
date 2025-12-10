@@ -321,7 +321,8 @@ export async function upsertParticipant(participant: InsertParticipant) {
 
   // 새 레코드 생성
   const result = await db.insert(participants).values(participant);
-  const insertId = (result as any).insertId;
+  // MySQL2 + Drizzle might return array or object depending on config
+  const insertId = (result as any).insertId || (result as any)[0]?.insertId;
 
   if (insertId) {
     const newParticipant = await db

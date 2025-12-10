@@ -4,14 +4,16 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Users, DollarSign, CheckCircle2, Mail, Phone } from "lucide-react";
+import { Calendar, Clock, Users, CheckCircle2, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation, useRoute } from "wouter";
+import { AuthModal } from "@/components/AuthModal";
 
 export default function EventDetailPage() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/event/:id");
   const eventId = params?.id ? parseInt(params.id, 10) : null;
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const { data: localUser } = trpc.localAuth.me.useQuery();
   const { data: event, isLoading } = trpc.events.getById.useQuery(
@@ -43,7 +45,8 @@ export default function EventDetailPage() {
   const handleRegister = async () => {
     if (!localUser) {
       toast.error("로그인이 필요합니다.");
-      setLocation("/");
+      // 로그인 창 띄우기
+      setAuthModalOpen(true);
       return;
     }
 
@@ -181,7 +184,7 @@ export default function EventDetailPage() {
                 </div>
               )}
               <div className="flex items-center gap-2 text-slate-600">
-                <DollarSign className="h-5 w-5" />
+                <div className="h-5 w-5 flex items-center justify-center font-bold text-xs bg-slate-100 rounded-full border border-slate-300">₩</div>
                 <span>{event.fee > 0 ? `유료 (${event.organizer?.accountNumber || "계좌번호 미등록"})` : "무료"}</span>
               </div>
               {event.minParticipants != null && (
@@ -272,6 +275,16 @@ export default function EventDetailPage() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Auth Modal */}
+      <AuthModal
+        open={authModalOpen}
+        onOpenChange={setAuthModalOpen}
+        onSuccess={() => {
+          setAuthModalOpen(false);
+          utils.localAuth.me.invalidate();
+        }}
+      />
     </div>
   );
 }

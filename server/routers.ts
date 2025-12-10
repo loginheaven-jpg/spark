@@ -749,11 +749,22 @@ export const appRouter = router({
             maskedName = maskedName[0] + '*';
           }
 
+          // user 객체도 마스킹하거나 제거해야 함
+          const user = p.user ? {
+            ...p.user,
+            name: maskedName,
+            email: null,
+            phone: null,
+            password: null, // 보안상 제거
+            openId: null,   // 보안상 제거
+          } : null;
+
           return {
             ...p,
             name: maskedName,
             email: null,
             phone: null,
+            user, // 마스킹된 사용자 정보 포함
           };
         });
       }),
