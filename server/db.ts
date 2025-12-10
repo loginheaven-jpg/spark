@@ -17,24 +17,27 @@ import {
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
-const poolConnection = mysql.createPool({
-  uri: process.env.DATABASE_URL,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
-
+// Global cache
 let _db: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(poolConnection);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+  if (_db) return _db;
+
+  if (!process.env.DATABASE_URL) {
+    console.warn("[Database] DATABASE_URL is not defined");
+    return null;
   }
+
+  try {
+    // mysql2 createPool accepts the connection string directly
+    const poolConnection = mysql.createPool(process.env.DATABASE_URL);
+    _db = drizzle(poolConnection);
+    console.log("[Database] Successfully connected to database");
+  } catch (error) {
+    console.error("[Database] Failed to connect:", error);
+    _db = null;
+  }
+
   return _db;
 }
 
