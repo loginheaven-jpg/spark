@@ -24,7 +24,7 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // 로컬 로그인 상태 확인
+  // 로컬 로그인 상태 확인 - Trigger Deployment #2
   const { data: localUser } = trpc.localAuth.me.useQuery();
   const logoutMutation = trpc.localAuth.logout.useMutation();
 
