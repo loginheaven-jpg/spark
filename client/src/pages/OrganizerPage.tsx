@@ -421,48 +421,80 @@ export default function OrganizerPage() {
               </p>
             </div>
 
+            {/* 유료/무료 모임 선택 (개선된 UI) */}
             <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="isPaid"
-                  checked={formData.fee > 0}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, fee: checked ? 10000 : 0 })
-                  }
-                />
-                <Label htmlFor="isPaid" className="cursor-pointer font-medium">
+              <Label className="text-base font-medium">참가비 설정</Label>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${formData.fee === 0
+                      ? "border-blue-600 bg-blue-50 text-blue-700 font-bold"
+                      : "border-slate-200 hover:border-slate-300 text-slate-600"
+                    }`}
+                  onClick={() => setFormData({ ...formData, fee: 0 })}
+                >
+                  <span className={formData.fee === 0 ? "text-blue-600" : "text-slate-400"}>
+                    ●
+                  </span>
+                  무료 모임
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${formData.fee > 0
+                      ? "border-slate-900 bg-slate-900 text-white font-bold"
+                      : "border-slate-200 hover:border-slate-300 text-slate-600"
+                    }`}
+                  onClick={() => setFormData({ ...formData, fee: 10000 })} // 기본값 10000원 설정
+                >
+                  <span className={formData.fee > 0 ? "text-white" : "text-slate-400"}>
+                    ●
+                  </span>
                   유료 모임
-                </Label>
+                </button>
               </div>
+
               {formData.fee > 0 && (
-                <div className="space-y-2 pl-12">
-                  <Label htmlFor="fee">참가비 (원) *</Label>
-                  <Input
-                    id="fee"
-                    type="number"
-                    value={formData.fee}
-                    onChange={(e) =>
-                      setFormData({ ...formData, fee: parseInt(e.target.value) || 0 })
-                    }
-                    placeholder="10000"
-                  />
-                  <Label htmlFor="accountNumber" className="mt-2">
-                    계좌번호 *
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    유료 모임을 개설할 경우 필요합니다
-                  </p>
-                  <Input
-                    id="accountNumber"
-                    value={user?.accountNumber || ""}
-                    placeholder="계좌번호를 입력하세요"
-                    disabled
-                  />
-                  {!user?.accountNumber && (
-                    <p className="text-xs text-destructive">
-                      계좌번호가 등록되지 않았습니다. 회원정보에서 등록해주세요.
+                <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800 break-keep">
+                    <p className="font-semibold mb-1">📢 유료 모임 안내</p>
+                    <p>
+                      유료 모임은 시스템 사용료 5,000원입니다. 아래 계좌로 입금해 주시면 됩니다.
+                      참여자의 입금을 보장해 주지 않습니다. (2025년은 무료 프로모션 기간입니다.)
                     </p>
-                  )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="fee">참가비 (원) *</Label>
+                    <Input
+                      id="fee"
+                      type="number"
+                      value={formData.fee}
+                      onChange={(e) =>
+                        setFormData({ ...formData, fee: parseInt(e.target.value) || 0 })
+                      }
+                      placeholder="참가비를 입력하세요 (예: 10000)"
+                      className="bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="accountNumber">입금 계좌번호 *</Label>
+                    <Input
+                      id="accountNumber"
+                      value={user?.accountNumber || ""}
+                      placeholder="계좌번호를 입력하세요"
+                      disabled
+                      className="bg-slate-100"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      참여자로부터 참여비를 입금받으실 계좌입니다. (회원정보에서 수정 가능)
+                    </p>
+                    {!user?.accountNumber && (
+                      <p className="text-xs text-destructive font-medium">
+                        ⚠️ 계좌번호가 등록되지 않았습니다. [마이페이지]에서 먼저 등록해주세요.
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

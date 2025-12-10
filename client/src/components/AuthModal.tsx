@@ -18,7 +18,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   // 로그인 폼 (자동 완성)
   const [loginEmail, setLoginEmail] = useState(() => {
     return localStorage.getItem("saved-login-email") || "";
@@ -26,7 +26,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
   const [loginPassword, setLoginPassword] = useState(() => {
     return localStorage.getItem("saved-login-password") || "";
   });
-  
+
   // 회원가입 폼
   const [registerName, setRegisterName] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
@@ -56,15 +56,13 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
 
   const registerMutation = trpc.localAuth.register.useMutation({
     onSuccess: () => {
-      toast.success("회원가입 성공! 로그인해주세요.");
-      setMode("login");
-      // 회원가입 폼 초기화
-      setRegisterName("");
-      setRegisterEmail("");
-      setRegisterPhone("");
-      setRegisterPassword("");
-      setRegisterConfirmPassword("");
-      setRegisterAccountNumber("");
+      toast.success("회원가입 성공! 자동으로 로그인합니다.");
+
+      // 자동 로그인 시도
+      loginMutation.mutate({
+        email: registerEmail,
+        password: registerPassword
+      });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -82,27 +80,27 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!registerName || !registerEmail || !registerPhone || !registerPassword) {
       toast.error("필수 항목을 모두 입력해주세요.");
       return;
     }
-    
+
     if (registerPassword.length < 6) {
       toast.error("비밀번호는 최소 6자 이상이어야 합니다.");
       return;
     }
-    
+
     if (registerPassword !== registerConfirmPassword) {
       toast.error("비밀번호가 일치하지 않습니다.");
       return;
     }
-    
+
     if (!agreedToPrivacy) {
       toast.error("개인정보 제공 동의가 필요합니다.");
       return;
     }
-    
+
     registerMutation.mutate({
       name: registerName,
       email: registerEmail,
@@ -139,7 +137,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="login-password">비밀번호</Label>
               <Input
@@ -196,6 +194,9 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
                 onChange={(e) => setRegisterName(e.target.value)}
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                실명, 가명 자유. 단, 모임개설을 하실 분은 실명을 쓰시길 권합니다.
+              </p>
             </div>
 
             <div className="space-y-2">
