@@ -13,7 +13,9 @@ import {
   InsertEvent,
   InsertParticipant,
   InsertRegistration,
-  InsertPasswordResetToken
+  InsertPasswordResetToken,
+  reviews,
+  InsertReview
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -589,4 +591,87 @@ export async function updateUserPassword(userId: number, hashedPassword: string)
     .update(users)
     .set({ password: hashedPassword })
     .where(eq(users.id, userId));
+}
+
+// ===== Reviews =====
+export async function createReview(review: InsertReview) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.insert(reviews).values(review);
+}
+
+export async function getReviewsByEvent(eventId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db
+    .select({
+      id: reviews.id,
+      eventId: reviews.eventId,
+      userId: reviews.userId,
+      content: reviews.content,
+      rating: reviews.rating,
+      createdAt: reviews.createdAt,
+      userName: users.name,
+    })
+    .from(reviews)
+    .leftJoin(users, eq(reviews.userId, users.id))
+    .where(eq(reviews.eventId, eventId))
+    .orderBy(desc(reviews.createdAt));
+}
+
+export async function getReviewByUserAndEvent(userId: number, eventId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db
+    .select()
+    .from(reviews)
+    .where(and(eq(reviews.userId, userId), eq(reviews.eventId, eventId)))
+    .limit(1);
+
+  return result[0] || null;
+}
+
+export async function getPendingReviewEvent(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const participant = await getParticipantByUserId(userId);
+  if (!participant) return null;
+
+  const now = new Date();
+  // KST conversion if needed, but simple YYYY-MM-DD usually implies local date or UTC.
+  // Assuming 'date' is stored as YYYY-MM-DD.
+  // Use today's date formatted as YYYY-MM-DD
+  const todayStr = now.toISOString().slice(0, 10);
+
+  const rows = await db
+    .select({
+      event: events,
+      reviewId: reviews.id
+    })
+    .from(registrations)
+    .innerJoin(participants, eq(registrations.participantId, participants.id))
+    .innerJoin(events, eq(registrations.eventId, events.id))
+    .leftJoin(reviews, and(eq(reviews.eventId, events.id), eq(reviews.userId, userId)))
+    .where(eq(participants.userId, userId))
+    .orderBy(desc(events.date));
+
+  // Filter for:
+  // 1. Event is over (date < today)
+  // 2. No review written (reviewId is null)
+  // 3. Status is approved (optional, but good practice)
+  const pending = rows.filter(r => {
+    if (r.reviewId) return false;
+    if (!r.event.date) return false;
+    // Assuming confirmed events
+    // if (r.event.eventStatus !== 'confirmed' && r.event.status !== 'approved') return false; 
+
+    // Check if date is in the past
+    return r.event.date < todayStr;
+  });
+
+  return pending.length > 0 ? pending[0].event : null;
 }

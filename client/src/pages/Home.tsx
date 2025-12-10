@@ -17,16 +17,30 @@ import { toast } from "sonner";
 import { useLocation } from "wouter";
 import EventCalendar from "@/components/EventCalendar";
 import { AuthModal } from "@/components/AuthModal";
+import { PendingReviewModal } from "@/components/PendingReviewModal";
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   // 로컬 로그인 상태 확인 - Trigger Deployment #2
   const { data: localUser } = trpc.localAuth.me.useQuery();
   const logoutMutation = trpc.localAuth.logout.useMutation();
+
+  // Check for pending reviews
+  const { data: pendingReviewEvent } = trpc.reviews.pending.useQuery(undefined, {
+    enabled: !!localUser,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (pendingReviewEvent) {
+      setShowReviewModal(true);
+    }
+  }, [pendingReviewEvent]);
 
   const handleLogout = async () => {
     try {
@@ -372,6 +386,15 @@ export default function Home() {
           utils.localAuth.me.invalidate();
         }}
       />
+
+      {pendingReviewEvent && (
+        <PendingReviewModal
+          event={pendingReviewEvent}
+          open={showReviewModal}
+          onOpenChange={setShowReviewModal}
+          onSuccess={() => utils.reviews.pending.invalidate()}
+        />
+      )}
     </div>
   );
 }

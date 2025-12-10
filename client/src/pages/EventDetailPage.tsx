@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { useLocation, useRoute } from "wouter";
 import { AuthModal } from "@/components/AuthModal";
 
+import { ReviewSection } from "@/components/ReviewSection";
+
 export default function EventDetailPage() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/event/:id");
@@ -274,6 +276,9 @@ export default function EventDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* 후기 섹션 */}
+        <ReviewSection eventId={event.id} />
       </main>
 
       {/* Auth Modal */}
@@ -285,6 +290,6 @@ export default function EventDetailPage() {
           utils.localAuth.me.invalidate();
         }}
       />
-    </div>
+    </div >
   );
 }

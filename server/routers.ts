@@ -566,6 +566,48 @@ export const appRouter = router({
       }),
   }),
 
+  // ===== Reviews =====
+  reviews: router({
+    create: protectedProcedure
+      .input(z.object({
+        eventId: z.number(),
+        content: z.string().min(1),
+        rating: z.number().min(1).max(5).default(5)
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // 중복 체크
+        const existingReview = await db.getReviewByUserAndEvent(ctx.user.id, input.eventId);
+        if (existingReview) {
+          throw new TRPCError({ code: "CONFLICT", message: "이미 후기를 작성했습니다." });
+        }
+
+        // 참가자 여부 확인
+        const isParticipant = await db.checkRegistrationExistsByUserId(input.eventId, ctx.user.id);
+        if (!isParticipant) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "참가자만 후기를 작성할 수 있습니다." });
+        }
+
+        await db.createReview({
+          eventId: input.eventId,
+          userId: ctx.user.id,
+          content: input.content,
+          rating: input.rating,
+        });
+        return { success: true };
+      }),
+
+    list: publicProcedure
+      .input(z.object({ eventId: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getReviewsByEvent(input.eventId);
+      }),
+
+    pending: protectedProcedure
+      .query(async ({ ctx }) => {
+        return await db.getPendingReviewEvent(ctx.user.id);
+      }),
+  }),
+
   // ===== Participants & Registrations =====
   participants: router({
     // 참여자 정보 등록/업데이트
