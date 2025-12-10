@@ -458,9 +458,11 @@ export default function OrganizerPage() {
                   <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800 break-keep">
                     <p className="font-semibold mb-1">📢 유료 모임 안내</p>
                     <p>
-                      유료 모임은 시스템 사용료 5,000원입니다. (입금계좌 : 토스 1000-3884-9129 최가람)<br />
-                      참여자의 입금을 보장해 주지 않습니다.<br />
-                      (2025년은 무료 프로모션 기간입니다.)
+                      2025년 기준, 유료 모임은 시스템 사용료 10,000원입니다.<br />
+                      (입금계좌 : 토스 1000-3884-9129 최가람)<br />
+                      (2025년은 무료 프로모션 기간입니다.)<br />
+                      <br />
+                      참여자의 입금을 보장해 주지 않습니다.
                     </p>
                   </div>
 
