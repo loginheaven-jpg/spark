@@ -50,6 +50,16 @@ export default function OrganizerPage() {
     organizerParticipates: true, // 기본값: 개설자도 참여
   });
 
+  /* New State for Account Number */
+  const [accountNumber, setAccountNumber] = useState("");
+
+  /* Sync local state when user data is loaded */
+  useEffect(() => {
+    if (user?.accountNumber) {
+      setAccountNumber(user.accountNumber);
+    }
+  }, [user]);
+
   const { data: myEvents } = trpc.events.listMine.useQuery(undefined, {
     enabled: !!user,
   });
@@ -58,6 +68,7 @@ export default function OrganizerPage() {
   const createEvent = trpc.events.create.useMutation();
   const updateEvent = trpc.events.update.useMutation();
   const deleteEvent = trpc.events.delete.useMutation();
+  const updateProfile = trpc.localAuth.updateProfile.useMutation(); // Add profile update mutation
   const utils = trpc.useUtils();
 
   // formData가 변경될 때마다 localStorage에 저장
@@ -126,6 +137,8 @@ export default function OrganizerPage() {
         organizerParticipates: true,
       });
     }
+    // Set account number from user profile
+    setAccountNumber(user?.accountNumber || "");
     setShowCreateDialog(true);
   };
 
@@ -145,6 +158,8 @@ export default function OrganizerPage() {
       maxParticipants: event.maxParticipants || 0,
       organizerParticipates: true, // 수정 시는 기본값 사용
     });
+    // Set account number from user profile (Events share the same organizer account)
+    setAccountNumber(user?.accountNumber || "");
     setShowCreateDialog(true);
   };
 
@@ -161,12 +176,19 @@ export default function OrganizerPage() {
     }
 
     // 유료 모임은 계좌번호 필수
-    if (formData.fee > 0 && !user?.accountNumber) {
-      toast.error("유료 모임을 개설하려면 계좌번호를 먼저 등록해주세요.");
+    if (formData.fee > 0 && !accountNumber.trim()) {
+      toast.error("유료 모임을 개설하려면 계좌번호를 입력해주세요.");
       return;
     }
 
     try {
+      // 1. Update Account Number if changed and fee > 0 (or just always if user provided one)
+      if (accountNumber.trim() !== (user?.accountNumber || "")) {
+        await updateProfile.mutateAsync({ accountNumber: accountNumber.trim() });
+        // Invalidate user query to reflect changes immediately
+        utils.localAuth.me.invalidate();
+      }
+
       if (editingEvent) {
         await updateEvent.mutateAsync({
           id: editingEvent.id,
@@ -484,17 +506,17 @@ export default function OrganizerPage() {
                     <Label htmlFor="accountNumber">입금 계좌번호 *</Label>
                     <Input
                       id="accountNumber"
-                      value={user?.accountNumber || ""}
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value)}
                       placeholder="계좌번호를 입력하세요"
-                      disabled
-                      className="bg-slate-100"
+                      className="bg-white"
                     />
                     <p className="text-xs text-muted-foreground">
-                      참여자로부터 참여비를 입금받으실 계좌입니다. (회원정보에서 수정 가능)
+                      참여자로부터 참여비를 입금받으실 계좌입니다. 여기서 수정하면 회원정보에도 반영됩니다.
                     </p>
-                    {!user?.accountNumber && (
+                    {!accountNumber && (
                       <p className="text-xs text-destructive font-medium">
-                        ⚠️ 계좌번호가 등록되지 않았습니다. [마이페이지]에서 먼저 등록해주세요.
+                        ⚠️ 계좌번호를 입력해주세요.
                       </p>
                     )}
                   </div>
