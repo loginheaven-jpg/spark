@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
+import * as db from "../db";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 
@@ -59,6 +60,10 @@ async function startServer() {
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
+
+  // Initialize schema (create missing tables)
+  // This is a safety measure because auto-migration in production is tricky without proper credentials
+  await db.initSchema();
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);

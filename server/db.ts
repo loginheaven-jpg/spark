@@ -1,5 +1,5 @@
 import mysql from "mysql2/promise";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, desc, count, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
@@ -41,6 +41,32 @@ export async function getDb() {
   }
 
   return _db;
+}
+
+export async function initSchema() {
+  const db = await getDb();
+  if (!db) {
+    console.error("[Database] Cannot init schema: database not available");
+    return;
+  }
+
+  try {
+    // Manually create reviews table if not exists (Hotfix for migration issue)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS reviews (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        eventId INT NOT NULL,
+        userId INT NOT NULL,
+        content TEXT NOT NULL,
+        rating INT NOT NULL DEFAULT 5,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    console.log("[Database] Schema initialized (checked 'reviews' table)");
+  } catch (error) {
+    console.error("[Database] Failed to init schema:", error);
+  }
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
