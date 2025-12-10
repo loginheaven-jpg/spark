@@ -44,15 +44,16 @@ export async function getDb() {
 }
 
 export async function initSchema() {
-  const db = await getDb();
-  if (!db) {
-    console.error("[Database] Cannot init schema: database not available");
+  if (!process.env.DATABASE_URL) {
+    console.error("[Database] Cannot init schema: DATABASE_URL not defined");
     return;
   }
 
   try {
-    // Manually create reviews table if not exists (Hotfix for migration issue)
-    await db.execute(sql`
+    // Use a separate connection for schema initialization to avoid Drizzle dependency issues during startup
+    const connection = await mysql.createConnection(process.env.DATABASE_URL);
+
+    await connection.execute(`
       CREATE TABLE IF NOT EXISTS reviews (
         id INT AUTO_INCREMENT PRIMARY KEY,
         eventId INT NOT NULL,
@@ -63,9 +64,13 @@ export async function initSchema() {
         updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
+
     console.log("[Database] Schema initialized (checked 'reviews' table)");
+    await connection.end();
   } catch (error) {
     console.error("[Database] Failed to init schema:", error);
+    // Don't throw error to prevent server crash, just log it. 
+    // The server might fail later if table doesn't exist, but at least it starts.
   }
 }
 
