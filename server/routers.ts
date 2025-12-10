@@ -458,6 +458,8 @@ export const appRouter = router({
         date: z.string().optional(),
         timeRange: z.string().optional(),
         eventStatus: z.enum(['proposal', 'scheduled', 'confirmed']).optional(),
+        minParticipants: z.number().optional(),
+        maxParticipants: z.number().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         // 로컬 로그인 사용자 확인
