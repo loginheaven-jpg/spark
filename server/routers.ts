@@ -704,12 +704,58 @@ export const appRouter = router({
       }),
 
     // 모임별 참여자 목록 조회
+    // 모임별 참여자 목록 조회 (권한별 정보 제한)
     listByEvent: publicProcedure
       .input(z.object({
         eventId: z.number(),
       }))
-      .query(async ({ input }) => {
-        return await db.getParticipantsByEvent(input.eventId);
+      .query(async ({ ctx, input }) => {
+        const event = await db.getEventById(input.eventId);
+        if (!event) return [];
+
+        const participants = await db.getParticipantsByEvent(input.eventId);
+
+        // 현재 로그인한 사용자 확인
+        let currentUser = null;
+        const localUserId = ctx.req.cookies?.local_user_id;
+        if (localUserId) {
+          const userId = parseInt(localUserId, 10);
+          if (!isNaN(userId)) {
+            currentUser = await db.getUserById(userId);
+          }
+        }
+
+        // 1. 관리자: 모든 정보 공개
+        if (currentUser?.role === 'admin') {
+          return participants;
+        }
+
+        // 2. 모임 개설자: 전화번호 제외하고 공개
+        if (currentUser && currentUser.id === event.organizerId) {
+          return participants.map(p => ({
+            ...p,
+            phone: null, // 전화번호 숨김
+          }));
+        }
+
+        // 3. 그 외 (일반 참여자/비로그인): 이름 마스킹, 이메일/전화번호 숨김
+        return participants.map(p => {
+          let maskedName = p.name;
+          if (p.name.length > 2) {
+            // 3글자 이상: 김철수 -> 김*수
+            maskedName = p.name[0] + '*'.repeat(p.name.length - 2) + p.name[p.name.length - 1];
+          } else if (p.name.length === 2) {
+            // 2글자: 이영 -> 이*
+            maskedName = p.name[0] + '*';
+          }
+
+          return {
+            ...p,
+            name: maskedName,
+            email: null,
+            phone: null,
+          };
+        });
       }),
   }),
 });

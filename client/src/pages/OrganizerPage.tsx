@@ -428,8 +428,8 @@ export default function OrganizerPage() {
                 <button
                   type="button"
                   className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${formData.fee === 0
-                      ? "border-blue-600 bg-blue-50 text-blue-700 font-bold"
-                      : "border-slate-200 hover:border-slate-300 text-slate-600"
+                    ? "border-blue-600 bg-blue-50 text-blue-700 font-bold"
+                    : "border-slate-200 hover:border-slate-300 text-slate-600"
                     }`}
                   onClick={() => setFormData({ ...formData, fee: 0 })}
                 >
@@ -441,8 +441,8 @@ export default function OrganizerPage() {
                 <button
                   type="button"
                   className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${formData.fee > 0
-                      ? "border-slate-900 bg-slate-900 text-white font-bold"
-                      : "border-slate-200 hover:border-slate-300 text-slate-600"
+                    ? "border-slate-900 bg-slate-900 text-white font-bold"
+                    : "border-slate-200 hover:border-slate-300 text-slate-600"
                     }`}
                   onClick={() => setFormData({ ...formData, fee: 10000 })} // 기본값 10000원 설정
                 >
@@ -458,8 +458,9 @@ export default function OrganizerPage() {
                   <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800 break-keep">
                     <p className="font-semibold mb-1">📢 유료 모임 안내</p>
                     <p>
-                      유료 모임은 시스템 사용료 5,000원입니다. 아래 계좌로 입금해 주시면 됩니다.
-                      참여자의 입금을 보장해 주지 않습니다. (2025년은 무료 프로모션 기간입니다.)
+                      유료 모임은 시스템 사용료 5,000원입니다. (입금계좌 : 토스 1000-3884-9129 최가람)<br />
+                      참여자의 입금을 보장해 주지 않습니다.<br />
+                      (2025년은 무료 프로모션 기간입니다.)
                     </p>
                   </div>
 
@@ -510,21 +511,21 @@ export default function OrganizerPage() {
                   <RadioGroupItem value="proposal" id="status-proposal" />
                   <Label htmlFor="status-proposal" className="font-normal cursor-pointer">
                     <span className="font-medium">제안 (Proposal)</span>
-                    <span className="ml-2 text-muted-foreground text-sm">- 아이디어 단계, 일정 미정 가능</span>
+                    <span className="ml-2 text-muted-foreground text-sm">- 이런 주제로 진행해 볼까요?</span>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="scheduled" id="status-scheduled" />
                   <Label htmlFor="status-scheduled" className="font-normal cursor-pointer">
                     <span className="font-medium">개설 확정 (Scheduled)</span>
-                    <span className="ml-2 text-muted-foreground text-sm">- 일정 확정, 참여자 모집 중</span>
+                    <span className="ml-2 text-muted-foreground text-sm">- 최소인원 신청되면 진행확정</span>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="confirmed" id="status-confirmed" />
                   <Label htmlFor="status-confirmed" className="font-normal cursor-pointer">
                     <span className="font-medium">진행 확정 (Confirmed)</span>
-                    <span className="ml-2 text-muted-foreground text-sm">- 모집 완료 또는 진행 확정</span>
+                    <span className="ml-2 text-muted-foreground text-sm">- 진행이 확정되었습니다</span>
                   </Label>
                 </div>
               </RadioGroup>
