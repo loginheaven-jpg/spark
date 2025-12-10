@@ -1,0 +1,1 @@
+ALTER TABLE `events` ADD `eventStatus` enum('proposal','scheduled','confirmed') DEFAULT 'scheduled' NOT NULL;

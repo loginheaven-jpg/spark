@@ -1,11 +1,12 @@
+import mysql from "mysql2/promise";
 import { eq, and, desc, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { 
-  InsertUser, 
-  users, 
-  availableSlots, 
-  events, 
-  participants, 
+import {
+  InsertUser,
+  users,
+  availableSlots,
+  events,
+  participants,
   registrations,
   passwordResetTokens,
   InsertAvailableSlot,
@@ -16,12 +17,19 @@ import {
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
+const poolConnection = mysql.createPool({
+  uri: process.env.DATABASE_URL,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+
 let _db: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _db = drizzle(poolConnection);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -47,7 +55,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       name: user.name,
       email: user.email,
     };
-    
+
     if (user.openId) {
       values.openId = user.openId;
     }
@@ -132,7 +140,7 @@ export async function getUserByEmail(email: string) {
 export async function updateUser(id: number, updates: Partial<InsertUser>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   await db.update(users).set(updates).where(eq(users.id, id));
 }
 
@@ -140,21 +148,21 @@ export async function updateUser(id: number, updates: Partial<InsertUser>) {
 export async function getAvailableSlots() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   return await db.select().from(availableSlots);
 }
 
 export async function createAvailableSlot(slot: InsertAvailableSlot) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   return await db.insert(availableSlots).values(slot);
 }
 
 export async function deleteAvailableSlot(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   return await db.delete(availableSlots).where(eq(availableSlots.id, id));
 }
 
@@ -162,14 +170,14 @@ export async function deleteAvailableSlot(id: number) {
 export async function getAllEvents() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   return await db.select().from(events).orderBy(desc(events.createdAt));
 }
 
 export async function getApprovedEvents() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const eventsData = await db
     .select({
       event: events,
@@ -180,21 +188,21 @@ export async function getApprovedEvents() {
     .where(eq(events.status, 'approved'))
     .groupBy(events.id)
     .orderBy(desc(events.createdAt));
-  
+
   const eventsWithCount = eventsData.map(row => ({
     ...row.event,
     _count: {
       registrations: Number(row.registrationCount) || 0,
     },
   }));
-  
+
   return eventsWithCount;
 }
 
 export async function getEventById(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const result = await db
     .select({
       event: events,
@@ -207,9 +215,9 @@ export async function getEventById(id: number) {
     .where(eq(events.id, id))
     .groupBy(events.id, users.id)
     .limit(1);
-  
+
   if (result.length === 0) return null;
-  
+
   const row = result[0];
   return {
     ...row.event,
@@ -223,14 +231,14 @@ export async function getEventById(id: number) {
 export async function getEventsByOrganizer(organizerId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   return await db.select().from(events).where(eq(events.organizerId, organizerId)).orderBy(desc(events.createdAt));
 }
 
 export async function getEventsByOrganizerWithCount(organizerId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const result = await db
     .select({
       event: events,
@@ -241,7 +249,7 @@ export async function getEventsByOrganizerWithCount(organizerId: number) {
     .where(eq(events.organizerId, organizerId))
     .groupBy(events.id)
     .orderBy(desc(events.createdAt));
-  
+
   return result.map(row => ({
     ...row.event,
     _count: {
@@ -253,24 +261,24 @@ export async function getEventsByOrganizerWithCount(organizerId: number) {
 export async function createEvent(event: InsertEvent) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   return await db.insert(events).values(event);
 }
 
 export async function updateEvent(id: number, updates: Partial<InsertEvent>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   return await db.update(events).set(updates).where(eq(events.id, id));
 }
 
 export async function deleteEvent(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   // 먼저 관련 registrations 삭제
   await db.delete(registrations).where(eq(registrations.eventId, id));
-  
+
   // 그 다음 event 삭제
   return await db.delete(events).where(eq(events.id, id));
 }
@@ -279,7 +287,7 @@ export async function deleteEvent(id: number) {
 export async function upsertParticipant(participant: InsertParticipant) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   // userId가 있으면 userId로 찾기
   if (participant.userId) {
     const existing = await db
@@ -287,31 +295,31 @@ export async function upsertParticipant(participant: InsertParticipant) {
       .from(participants)
       .where(eq(participants.userId, participant.userId))
       .limit(1);
-    
+
     if (existing.length > 0) {
       // 기존 레코드 업데이트
       await db.update(participants).set(participant).where(eq(participants.userId, participant.userId));
       return existing[0];
     }
   }
-  
+
   // 이메일로 찾기
   const existing = await db
     .select()
     .from(participants)
     .where(eq(participants.email, participant.email))
     .limit(1);
-  
+
   if (existing.length > 0) {
     // 기존 레코드 업데이트
     await db.update(participants).set(participant).where(eq(participants.email, participant.email));
     return existing[0];
   }
-  
+
   // 새 레코드 생성
   const result = await db.insert(participants).values(participant);
   const insertId = (result as any).insertId;
-  
+
   if (insertId) {
     const newParticipant = await db
       .select()
@@ -320,14 +328,14 @@ export async function upsertParticipant(participant: InsertParticipant) {
       .limit(1);
     return newParticipant[0];
   }
-  
+
   return null;
 }
 
 export async function getParticipantById(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const result = await db.select().from(participants).where(eq(participants.id, id)).limit(1);
   return result.length > 0 ? result[0] : null;
 }
@@ -335,7 +343,7 @@ export async function getParticipantById(id: number) {
 export async function getParticipantByEmail(email: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const result = await db.select().from(participants).where(eq(participants.email, email)).limit(1);
   return result.length > 0 ? result[0] : null;
 }
@@ -343,7 +351,7 @@ export async function getParticipantByEmail(email: string) {
 export async function getParticipantByUserId(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const result = await db.select().from(participants).where(eq(participants.userId, userId)).limit(1);
   return result.length > 0 ? result[0] : null;
 }
@@ -351,7 +359,7 @@ export async function getParticipantByUserId(userId: number) {
 export async function getParticipantsByEvent(eventId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   return await db
     .select({
       id: participants.id,
@@ -373,14 +381,14 @@ export async function getParticipantsByEvent(eventId: number) {
 export async function createRegistration(registration: InsertRegistration) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   return await db.insert(registrations).values(registration);
 }
 
 export async function getRegistrationsByEvent(eventId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   return await db
     .select({
       id: registrations.id,
@@ -400,7 +408,7 @@ export async function getRegistrationsByEvent(eventId: number) {
 export async function getRegistrationsByParticipant(participantId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   return await db
     .select({
       id: registrations.id,
@@ -421,13 +429,13 @@ export async function getRegistrationsByParticipant(participantId: number) {
 export async function getRegistrationsByUserId(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   // userId로 participant 찾기
   const participant = await getParticipantByUserId(userId);
   if (!participant) {
     return [];
   }
-  
+
   return await db
     .select({
       id: registrations.id,
@@ -450,33 +458,33 @@ export async function getRegistrationsByUserId(userId: number) {
 export async function checkRegistrationExists(eventId: number, participantId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const result = await db
     .select()
     .from(registrations)
     .where(and(eq(registrations.eventId, eventId), eq(registrations.participantId, participantId)))
     .limit(1);
-  
+
   return result.length > 0;
 }
 
 export async function checkRegistrationExistsByUserId(eventId: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   // userId로 participant 찾기
   const participant = await getParticipantByUserId(userId);
   if (!participant) {
     return false;
   }
-  
+
   return await checkRegistrationExists(eventId, participant.id);
 }
 
 export async function deleteRegistration(eventId: number, participantId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   return await db
     .delete(registrations)
     .where(and(eq(registrations.eventId, eventId), eq(registrations.participantId, participantId)));
@@ -485,13 +493,13 @@ export async function deleteRegistration(eventId: number, participantId: number)
 export async function deleteRegistrationByUserId(eventId: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   // userId로 participant 찾기
   const participant = await getParticipantByUserId(userId);
   if (!participant) {
     throw new Error("Participant not found");
   }
-  
+
   return await deleteRegistration(eventId, participant.id);
 }
 
@@ -507,7 +515,7 @@ export async function createResetToken(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const result = await db
     .insert(passwordResetTokens)
     .values({
@@ -515,7 +523,7 @@ export async function createResetToken(
       token,
       expiresAt,
     });
-  
+
   return result;
 }
 
@@ -525,13 +533,13 @@ export async function createResetToken(
 export async function findResetToken(token: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const result = await db
     .select()
     .from(passwordResetTokens)
     .where(eq(passwordResetTokens.token, token))
     .limit(1);
-  
+
   return result[0] || null;
 }
 
@@ -541,7 +549,7 @@ export async function findResetToken(token: string) {
 export async function invalidateResetToken(token: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   await db
     .update(passwordResetTokens)
     .set({ used: true })
@@ -554,7 +562,7 @@ export async function invalidateResetToken(token: string) {
 export async function invalidateUserResetTokens(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   await db
     .update(passwordResetTokens)
     .set({ used: true })
@@ -572,7 +580,7 @@ export async function invalidateUserResetTokens(userId: number) {
 export async function updateUserPassword(userId: number, hashedPassword: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   await db
     .update(users)
     .set({ password: hashedPassword })
