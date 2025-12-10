@@ -336,7 +336,8 @@ export default function Home() {
         </div>
 
         {/* Calendar */}
-        <Collapsible defaultOpen={false} className="mb-8">
+        {/* Calendar - 일시적으로 숨김 (모임이 적으므로) */}
+        {/* <Collapsible defaultOpen={false} className="mb-8">
           <CollapsibleTrigger asChild>
             <Button
               variant="outline"
@@ -359,7 +360,7 @@ export default function Home() {
               </CardContent>
             </Card>
           </CollapsibleContent>
-        </Collapsible>
+        </Collapsible> */}
       </main>
 
       {/* Auth Modal */}
