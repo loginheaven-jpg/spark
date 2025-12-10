@@ -144,6 +144,22 @@ export default function Home() {
               />
             </div>
           </div>
+
+          {/* 범례 (Legend) */}
+          <div className="flex flex-wrap justify-center gap-4 mt-6 text-sm text-slate-600">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded border-2 border-dashed border-slate-300 bg-white"></div>
+              <span>모임 제안 (수요조사)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded border-2 border-blue-500 bg-white"></div>
+              <span>개설 확정 (모집중)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded border-4 border-green-500 bg-green-50"></div>
+              <span>진행 확정 (참석가능)</span>
+            </div>
+          </div>
         </div>
 
         {/* Events Grid */}
