@@ -1,0 +1,38 @@
+{
+  "query": "SELECT id, title, organizerId, status, createdAt FROM events ORDER BY createdAt DESC LIMIT 10",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3QWpR2xe5uxFc11.868f29f24933 --database FJE4iMoWMPwpvBhfEUFGed --execute SELECT id, title, organizerId, status, createdAt FROM events ORDER BY createdAt DESC LIMIT 10",
+  "rows": [
+    {
+      "id": "600001",
+      "title": "육류소비와 코칭 이어가기",
+      "organizerId": "750001",
+      "status": "pending",
+      "createdAt": "2025-12-09 23:31:46"
+    },
+    {
+      "id": "570001",
+      "title": "TCI 진단 그룹해석세미나 1회차",
+      "organizerId": "1",
+      "status": "pending",
+      "createdAt": "2025-12-09 12:31:07"
+    },
+    {
+      "id": "420001",
+      "title": "KAC 인증 마무리 특강",
+      "organizerId": "1",
+      "status": "approved",
+      "createdAt": "2025-12-09 04:44:18"
+    },
+    {
+      "id": "300001",
+      "title": "육류 소비와 코칭 이어보기",
+      "organizerId": "1",
+      "status": "approved",
+      "createdAt": "2025-12-08 13:47:16"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\torganizerId\tstatus\tcreatedAt\n600001\t육류소비와 코칭 이어가기\t750001\tpending\t2025-12-09 23:31:46\n570001\tTCI 진단 그룹해석세미나 1회차\t1\tpending\t2025-12-09 12:31:07\n420001\tKAC 인증 마무리 특강\t1\tapproved\t2025-12-09 04:44:18\n300001\t육류 소비와 코칭 이어보기\t1\tapproved\t2025-12-08 13:47:16\n",
+  "stderr": "",
+  "execution_time_ms": 2146
+}

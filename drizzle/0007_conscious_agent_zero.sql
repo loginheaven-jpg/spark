@@ -1,0 +1,1 @@
+ALTER TABLE `events` ADD `instructorName` varchar(100);

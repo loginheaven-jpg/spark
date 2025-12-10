@@ -1,0 +1,1 @@
+ALTER TABLE `events` ADD `maxParticipants` int DEFAULT 0;
