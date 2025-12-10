@@ -112,7 +112,7 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px]" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-2xl">
             {mode === "login" ? "로그인" : "회원가입"}

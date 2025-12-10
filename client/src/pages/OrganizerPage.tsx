@@ -372,9 +372,12 @@ export default function OrganizerPage() {
         </div>
       </main>
 
-      {/* Create/Edit Dialog */}
+      /* Create/Edit Dialog */
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>
               {editingEvent ? "모임 수정" : "모임 생성"}
@@ -480,7 +483,7 @@ export default function OrganizerPage() {
                   <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800 break-keep">
                     <p className="font-semibold mb-1">📢 유료 모임 안내</p>
                     <p>
-                      2025년 기준, 유료 모임은 시스템 사용료 10,000원입니다.<br />
+                      유료 모임 비용은 시스템 사용료 10,000원입니다.<br />
                       (입금계좌 : 토스 1000-3884-9129 최가람)<br />
                       (2025년은 무료 프로모션 기간입니다.)<br />
                       <br />
@@ -651,8 +654,8 @@ export default function OrganizerPage() {
                   : "생성하기"}
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        </DialogContent >
+      </Dialog >
+    </div >
   );
 }
