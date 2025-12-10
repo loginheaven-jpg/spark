@@ -62,8 +62,8 @@ async function startServer() {
   }
 
   // Initialize schema (create missing tables)
-  // This is a safety measure because auto-migration in production is tricky without proper credentials
-  await db.initSchema();
+  // [REMOVED] Auto-init caused crash. Reverting to manual manual migration strategy.
+  // await db.initSchema();
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);

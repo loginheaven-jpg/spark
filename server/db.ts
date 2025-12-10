@@ -20,7 +20,8 @@ import {
 import { ENV } from './_core/env';
 
 // Global cache
-let _db: ReturnType<typeof drizzle> | null = null;
+// Cast to any to avoid "Property 'promise' is missing" type error between mysql2 flavors
+let _db: any = null;
 
 export async function getDb() {
   if (_db) return _db;
@@ -43,36 +44,7 @@ export async function getDb() {
   return _db;
 }
 
-export async function initSchema() {
-  if (!process.env.DATABASE_URL) {
-    console.error("[Database] Cannot init schema: DATABASE_URL not defined");
-    return;
-  }
-
-  try {
-    // Use a separate connection for schema initialization to avoid Drizzle dependency issues during startup
-    const connection = await mysql.createConnection(process.env.DATABASE_URL);
-
-    await connection.execute(`
-      CREATE TABLE IF NOT EXISTS reviews (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        eventId INT NOT NULL,
-        userId INT NOT NULL,
-        content TEXT NOT NULL,
-        rating INT NOT NULL DEFAULT 5,
-        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
-    `);
-
-    console.log("[Database] Schema initialized (checked 'reviews' table)");
-    await connection.end();
-  } catch (error) {
-    console.error("[Database] Failed to init schema:", error);
-    // Don't throw error to prevent server crash, just log it. 
-    // The server might fail later if table doesn't exist, but at least it starts.
-  }
-}
+// [REMOVED] initSchema function caused deployment crashes.
 
 export async function upsertUser(user: InsertUser): Promise<void> {
   // Manus OAuth 사용자는 openId 필수, 일반 회원은 email 필수
