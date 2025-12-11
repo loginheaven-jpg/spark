@@ -659,7 +659,9 @@ export default function OrganizerPage() {
                   <p>1. 아래 버튼을 눌러 구글 드라이브 스토리지로 이동하세요.</p>
                   <p>2. <span className="font-bold">강의명_강사명_날짜</span> 형식으로 새 폴더를 만드세요.<br />
                     (예: 인공지능윤리_김철수_20251225)</p>
-                  <p>3. 만든 폴더에 강의 자료를 업로드하고, <span className="font-bold">해당 폴더의 링크를 복사</span>하여 아래 칸에 붙여넣어 주세요.</p>
+                  <p>3. 자료 업로드 후 <b>공유 버튼</b>을 누르고, <span className="font-bold text-red-600">'링크가 있는 모든 사용자'에게 '뷰어' 권한</span>을 선택하세요.</p>
+                  <p className="font-medium text-red-600">※ 주의: 절대 '편집자' 권한을 주지 마세요. 파일이 삭제될 수 있습니다.</p>
+                  <p>4. <b>링크 복사</b>를 눌러 아래 칸에 붙여넣어 주세요.</p>
                 </div>
                 <Button
                   variant="outline"
