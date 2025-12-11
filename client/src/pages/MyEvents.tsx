@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, Users, Tag, DollarSign, ArrowLeft } from "lucide-react";
+import { Calendar, Clock, Users, Tag, DollarSign, ArrowLeft, Download } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -20,7 +20,7 @@ export default function MyEvents() {
 
   // 내가 신청한 모임 목록
   const { data: myRegistrations, isLoading: loadingRegistrations } = trpc.participants.myRegistrations.useQuery();
-  
+
   // 내가 개설한 모임 목록
   const { data: myOrganizedEvents, isLoading: loadingOrganized } = trpc.events.myEvents.useQuery();
 
@@ -36,7 +36,7 @@ export default function MyEvents() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <Header />
-      
+
       {/* Page Title */}
       <div className="bg-background/80 backdrop-blur-sm border-b">
         <div className="container py-4">
@@ -64,11 +64,10 @@ export default function MyEvents() {
                 {myRegistrations.filter(reg => reg.eventTitle).map((reg) => (
                   <Card
                     key={reg.id}
-                    className={`hover:shadow-lg transition-all ${
-                      reg.eventIsProposal === 1
-                        ? "border-2 border-dashed border-orange-400"
-                        : "border-2 border-solid border-blue-500"
-                    }`}
+                    className={`hover:shadow-lg transition-all ${reg.eventIsProposal === 1
+                      ? "border-2 border-dashed border-orange-400"
+                      : "border-2 border-solid border-blue-500"
+                      }`}
                   >
                     <CardHeader>
                       <CardTitle className="line-clamp-2">{reg.eventTitle}</CardTitle>
@@ -92,9 +91,29 @@ export default function MyEvents() {
                         <span>{reg.eventFee === 0 ? "무료" : `${reg.eventFee?.toLocaleString()}원`}</span>
                       </div>
                       <div className="pt-2 border-t">
-                        <p className="text-xs text-muted-foreground">
-                          신청일: {new Date(reg.createdAt).toLocaleDateString("ko-KR")}
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            신청일: {new Date(reg.createdAt).toLocaleDateString("ko-KR")}
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8"
+                            disabled={!reg.hasReviewed}
+                            onClick={() => {
+                              if (reg.hasReviewed) {
+                                if (reg.eventMaterialUrl) {
+                                  window.open(reg.eventMaterialUrl, "_blank");
+                                } else {
+                                  alert("등록된 자료가 없습니다. 개설자에게 문의해주세요.");
+                                }
+                              }
+                            }}
+                          >
+                            <Download className="w-3 h-3 mr-1" />
+                            자료
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -119,11 +138,10 @@ export default function MyEvents() {
                 {myOrganizedEvents.map((event) => (
                   <Card
                     key={event.id}
-                    className={`hover:shadow-lg transition-all ${
-                      event.isProposal === 1
-                        ? "border-2 border-dashed border-orange-400"
-                        : "border-2 border-solid border-blue-500"
-                    }`}
+                    className={`hover:shadow-lg transition-all ${event.isProposal === 1
+                      ? "border-2 border-dashed border-orange-400"
+                      : "border-2 border-solid border-blue-500"
+                      }`}
                   >
                     <CardHeader>
                       <CardTitle className="line-clamp-2">{event.title}</CardTitle>
@@ -149,7 +167,10 @@ export default function MyEvents() {
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <Users className="w-4 h-4 text-muted-foreground" />
-                        <span>신청자: {event._count?.registrations || 0}명</span>
+                        <span>
+                          신청자: {event._count?.registrations || 0}
+                          {event.minParticipants && event.minParticipants > 0 ? ` / ${event.minParticipants}` : ""}명
+                        </span>
                       </div>
                       {event.isProposal === 1 && event.minParticipants && (
                         <div className="text-xs text-orange-600">

@@ -46,6 +46,27 @@ export async function getDb() {
 
 // [REMOVED] initSchema function caused deployment crashes.
 
+export async function runMigrations() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot run migrations: database not available");
+    return;
+  }
+
+  try {
+    // Attempt to add materialUrl column
+    await db.execute(sql`ALTER TABLE events ADD COLUMN materialUrl VARCHAR(500)`);
+    console.log("[Database] Migration: 'materialUrl' column added to 'events' table.");
+  } catch (error: any) {
+    // Check for "Duplicate column name" error code (MySQL: 1060, Code: ER_DUP_FIELDNAME)
+    if (error.code === 'ER_DUP_FIELDNAME' || error.errno === 1060) {
+      console.log("[Database] Migration: 'materialUrl' column already exists.");
+    } else {
+      console.warn("[Database] Migration failed:", error);
+    }
+  }
+}
+
 export async function upsertUser(user: InsertUser): Promise<void> {
   // Manus OAuth 사용자는 openId 필수, 일반 회원은 email 필수
   if (!user.openId && !user.email) {
@@ -452,14 +473,19 @@ export async function getRegistrationsByUserId(userId: number) {
       participantId: registrations.participantId,
       createdAt: registrations.createdAt,
       eventTitle: events.title,
+      eventDescription: events.description,
       eventDate: events.date,
       eventTimeRange: events.timeRange,
       eventFee: events.fee,
       eventIsConfirmed: events.isConfirmed,
       eventIsProposal: events.isProposal,
+      eventMinParticipants: events.minParticipants,
+      eventMaterialUrl: events.materialUrl,
+      hasReviewed: sql<boolean>`CASE WHEN ${reviews.id} IS NOT NULL THEN true ELSE false END`,
     })
     .from(registrations)
     .leftJoin(events, eq(registrations.eventId, events.id))
+    .leftJoin(reviews, and(eq(reviews.eventId, events.id), eq(reviews.userId, userId)))
     .where(eq(registrations.participantId, participant.id))
     .orderBy(desc(registrations.createdAt));
 }

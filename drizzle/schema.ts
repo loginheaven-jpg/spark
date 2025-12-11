@@ -58,6 +58,7 @@ export const events = mysqlTable("events", {
   isConfirmed: int("isConfirmed").default(0).notNull(),
   eventStatus: mysqlEnum("eventStatus", ["proposal", "scheduled", "confirmed"]).default("scheduled").notNull(),
   status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  materialUrl: varchar("materialUrl", { length: 500 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

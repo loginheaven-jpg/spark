@@ -4,9 +4,10 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Users, CheckCircle2, Mail, Phone } from "lucide-react";
+import { Calendar, Clock, Users, CheckCircle2, Mail, Phone, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation, useRoute } from "wouter";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AuthModal } from "@/components/AuthModal";
 
 import { ReviewSection } from "@/components/ReviewSection";
@@ -16,6 +17,7 @@ export default function EventDetailPage() {
   const [, params] = useRoute("/event/:id");
   const eventId = params?.id ? parseInt(params.id, 10) : null;
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const { data: localUser } = trpc.localAuth.me.useQuery();
   const { data: event, isLoading } = trpc.events.getById.useQuery(
@@ -60,7 +62,14 @@ export default function EventDetailPage() {
 
     try {
       await registerForEvent.mutateAsync({ eventId: eventId! });
-      toast.success("모임 신청이 완료되었습니다!");
+
+      // 유료 모임인 경우 계좌번호 팝업 표시
+      if (event && event.fee > 0) {
+        setShowPaymentModal(true);
+      } else {
+        toast.success("모임 신청이 완료되었습니다!");
+      }
+
       utils.events.getById.invalidate();
       utils.participants.listByEvent.invalidate();
       utils.participants.myRegistrations.invalidate();
@@ -290,6 +299,54 @@ export default function EventDetailPage() {
           utils.localAuth.me.invalidate();
         }}
       />
+
+      {/* Payment Info Modal */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>참여비 입금 안내</DialogTitle>
+            <DialogDescription>
+              아래 계좌로 참여비를 입금해주시면 신청이 최종 완료됩니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+              <span className="text-slate-600">참여비</span>
+              <span className="font-bold text-lg">{event?.fee.toLocaleString()}원</span>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">입금 계좌</label>
+              <div className="flex gap-2">
+                <div className="flex-1 p-3 bg-slate-50 rounded-lg font-mono border border-slate-200 flex items-center">
+                  {event?.organizer?.accountNumber || "계좌번호 정보 없음"}
+                </div>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-full w-12 shrink-0"
+                  onClick={() => {
+                    const account = event?.organizer?.accountNumber;
+                    if (account) {
+                      navigator.clipboard.writeText(account);
+                      toast.success("계좌번호가 복사되었습니다.");
+                      setShowPaymentModal(false);
+                    } else {
+                      toast.error("복사할 계좌번호가 없습니다.");
+                    }
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => setShowPaymentModal(false)}>
+              확인
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div >
   );
 }

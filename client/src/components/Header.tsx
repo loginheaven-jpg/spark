@@ -60,7 +60,7 @@ export default function Header() {
                   size="sm"
                   onClick={() => setLocation("/my-events")}
                 >
-                  모임현황
+                  내모임현황
                 </Button>
                 <Button
                   size="sm"

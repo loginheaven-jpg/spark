@@ -65,6 +65,9 @@ async function startServer() {
   // [REMOVED] Auto-init caused crash. Reverting to manual manual migration strategy.
   // await db.initSchema();
 
+  // Run critical migrations
+  await db.runMigrations();
+
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });

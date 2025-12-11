@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Calendar, Clock, Plus, Edit, Trash2, CheckCircle } from "lucide-react";
+import { Calendar, Clock, Plus, Edit, Trash2, CheckCircle, Upload, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
@@ -48,6 +48,7 @@ export default function OrganizerPage() {
     minParticipants: 0,
     maxParticipants: 0,
     organizerParticipates: true, // 기본값: 개설자도 참여
+    materialUrl: "",
   });
 
   /* New State for Account Number */
@@ -135,6 +136,7 @@ export default function OrganizerPage() {
         minParticipants: 0,
         maxParticipants: 0,
         organizerParticipates: true,
+        materialUrl: "",
       });
     }
     // Set account number from user profile
@@ -157,6 +159,7 @@ export default function OrganizerPage() {
       minParticipants: event.minParticipants || 0,
       maxParticipants: event.maxParticipants || 0,
       organizerParticipates: true, // 수정 시는 기본값 사용
+      materialUrl: event.materialUrl || "",
     });
     // Set account number from user profile (Events share the same organizer account)
     setAccountNumber(user?.accountNumber || "");
@@ -640,6 +643,49 @@ export default function OrganizerPage() {
                 }
                 placeholder="10:00-11:00"
               />
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <Upload className="w-5 h-5 text-blue-600" />
+                <h3 className="font-semibold text-base">강의 자료 관리</h3>
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-lg space-y-3 border border-blue-100">
+                <p className="text-sm text-blue-800 font-medium">
+                  📚 강의 자료 업로드 가이드
+                </p>
+                <div className="text-xs text-blue-700 space-y-2">
+                  <p>1. 아래 버튼을 눌러 구글 드라이브 스토리지로 이동하세요.</p>
+                  <p>2. <span className="font-bold">강의명_강사명_날짜</span> 형식으로 새 폴더를 만드세요.<br />
+                    (예: 인공지능윤리_김철수_20251225)</p>
+                  <p>3. 만든 폴더에 강의 자료를 업로드하고, <span className="font-bold">해당 폴더의 링크를 복사</span>하여 아래 칸에 붙여넣어 주세요.</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white hover:bg-slate-50 text-blue-600 border-blue-200 w-full mt-2"
+                  onClick={() => window.open("https://drive.google.com/drive/folders/1keiEChZOEX6iC7AocwALjrNGnmpjhdA3?usp=drive_link", "_blank")}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  구글 드라이브 열기
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="materialUrl">자료 링크 (URL)</Label>
+                <Input
+                  id="materialUrl"
+                  value={formData.materialUrl}
+                  onChange={(e) =>
+                    setFormData({ ...formData, materialUrl: e.target.value })
+                  }
+                  placeholder="예: https://drive.google.com/drive/folders/..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  참여자가 후기를 작성하면 이 링크를 통해 자료를 다운로드할 수 있습니다.
+                </p>
+              </div>
             </div>
 
             <Button

@@ -391,6 +391,7 @@ export const appRouter = router({
         maxParticipants: z.number().default(0),
         organizerParticipates: z.boolean().default(true),
         eventStatus: z.enum(['proposal', 'scheduled', 'confirmed']).optional(),
+        materialUrl: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         // 로컬 로그인 사용자 확인
@@ -460,6 +461,7 @@ export const appRouter = router({
         eventStatus: z.enum(['proposal', 'scheduled', 'confirmed']).optional(),
         minParticipants: z.number().optional(),
         maxParticipants: z.number().optional(),
+        materialUrl: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         // 로컬 로그인 사용자 확인

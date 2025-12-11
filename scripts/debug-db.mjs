@@ -36,13 +36,17 @@ async function debugAndFix() {
             const user = users[0];
             console.log(`👤 사용자 발견: ${user.name} (ID: ${user.id}, Role: ${user.role})`);
 
-            // 비밀번호 강제 리셋 (1234qwer)
-            const newPassword = '1234qwer';
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(newPassword, salt);
-
-            await connection.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, user.id]);
-            console.log(`✅ 비밀번호가 '${newPassword}'로 재설정되었습니다.`);
+            // 컬럼 추가 (materialUrl)
+            try {
+                await connection.query('ALTER TABLE events ADD COLUMN materialUrl VARCHAR(500)');
+                console.log('✅ materialUrl 컬럼이 성공적으로 추가되었습니다.');
+            } catch (error) {
+                if (error.code === 'ER_DUP_FIELDNAME') {
+                    console.log('ℹ️ materialUrl 컬럼이 이미 존재합니다.');
+                } else {
+                    console.error('❌ 컬럼 추가 중 오류 발생:', error);
+                }
+            }
         }
 
     } catch (error) {
