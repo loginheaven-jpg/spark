@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import * as db from "../db";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import uploadRouter from "../uploads";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -37,8 +38,13 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // Cookie parser for reading cookies
   app.use(cookieParser());
+
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
+  // File Upload API
+  app.use("/api/upload", uploadRouter);
+
   // tRPC API
   app.use(
     "/api/trpc",

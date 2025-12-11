@@ -55,8 +55,20 @@ export async function runMigrations() {
 
   try {
     // Attempt to add materialUrl column
-    await db.execute(sql`ALTER TABLE events ADD COLUMN materialUrl VARCHAR(500)`);
-    console.log("[Database] Migration: 'materialUrl' column added to 'events' table.");
+    try {
+      await db.execute(sql`ALTER TABLE events ADD COLUMN materialUrl VARCHAR(500)`);
+      console.log("[Database] Migration: 'materialUrl' column added.");
+    } catch (e: any) {
+      if (e.code !== 'ER_DUP_FIELDNAME' && e.errno !== 1060) console.warn(e);
+    }
+
+    // Attempt to add materialContent column
+    try {
+      await db.execute(sql`ALTER TABLE events ADD COLUMN materialContent TEXT`);
+      console.log("[Database] Migration: 'materialContent' column added.");
+    } catch (e: any) {
+      if (e.code !== 'ER_DUP_FIELDNAME' && e.errno !== 1060) console.warn(e);
+    }
   } catch (error: any) {
     // Check for "Duplicate column name" error code (MySQL: 1060, Code: ER_DUP_FIELDNAME)
     if (error.code === 'ER_DUP_FIELDNAME' || error.errno === 1060) {

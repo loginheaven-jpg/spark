@@ -462,6 +462,7 @@ export const appRouter = router({
         minParticipants: z.number().optional(),
         maxParticipants: z.number().optional(),
         materialUrl: z.string().optional(),
+        materialContent: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         // 로컬 로그인 사용자 확인

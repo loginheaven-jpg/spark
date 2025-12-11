@@ -49,7 +49,11 @@ export default function OrganizerPage() {
     maxParticipants: 0,
     organizerParticipates: true, // 기본값: 개설자도 참여
     materialUrl: "",
+    materialContent: "",
   });
+
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   /* New State for Account Number */
   const [accountNumber, setAccountNumber] = useState("");
@@ -137,6 +141,7 @@ export default function OrganizerPage() {
         maxParticipants: 0,
         organizerParticipates: true,
         materialUrl: "",
+        materialContent: "",
       });
     }
     // Set account number from user profile
@@ -160,6 +165,7 @@ export default function OrganizerPage() {
       maxParticipants: event.maxParticipants || 0,
       organizerParticipates: true, // 수정 시는 기본값 사용
       materialUrl: event.materialUrl || "",
+      materialContent: event.materialContent || "",
     });
     // Set account number from user profile (Events share the same organizer account)
     setAccountNumber(user?.accountNumber || "");
@@ -651,59 +657,119 @@ export default function OrganizerPage() {
                 <h3 className="font-semibold text-base">강의 자료 관리</h3>
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-lg space-y-3 border border-blue-100">
-                <p className="text-sm text-blue-800 font-medium">
-                  📚 강의 자료 업로드 가이드
-                </p>
-                <div className="text-xs text-blue-700 space-y-2">
-                  <p>1. 아래 버튼을 눌러 구글 드라이브 스토리지로 이동하세요.</p>
-                  <p>2. <span className="font-bold">강의명_강사명_날짜</span> 형식으로 새 폴더를 만드세요.<br />
-                    (예: 인공지능윤리_김철수_20251225)</p>
-                  <p>3. 자료 업로드 후 <b>공유 버튼</b>을 누르고, <span className="font-bold text-red-600">'링크가 있는 모든 사용자'에게 '뷰어' 권한</span>을 선택하세요.</p>
-                  <p className="font-medium text-red-600">※ 주의: 절대 '편집자' 권한을 주지 마세요. 파일이 삭제될 수 있습니다.</p>
-                  <p>4. <b>링크 복사</b>를 눌러 아래 칸에 붙여넣어 주세요.</p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white hover:bg-slate-50 text-blue-600 border-blue-200 w-full mt-2"
-                  onClick={() => window.open("https://drive.google.com/drive/folders/1keiEChZOEX6iC7AocwALjrNGnmpjhdA3?usp=drive_link", "_blank")}
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  구글 드라이브 열기
-                </Button>
+              {/* Material Content (Text) */}
+              <div className="space-y-2">
+                <Label htmlFor="materialContent">자료 설명 / 공지사항</Label>
+                <Textarea
+                  id="materialContent"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={formData.materialContent || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, materialContent: e.target.value })
+                  }
+                  placeholder="자료에 대한 설명이나 링크, 참고사항 등을 적어주세요."
+                />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="materialUrl">자료 링크 (URL)</Label>
-                <Input
-                  id="materialUrl"
-                  value={formData.materialUrl}
-                  onChange={(e) =>
-                    setFormData({ ...formData, materialUrl: e.target.value })
-                  }
-                  placeholder="예: https://drive.google.com/drive/folders/..."
-                />
-                <p className="text-xs text-muted-foreground">
-                  참여자가 후기를 작성하면 이 링크를 통해 자료를 다운로드할 수 있습니다.
+              {/* File Upload Section */}
+              <div className="bg-slate-50 p-4 rounded-lg space-y-3 border border-slate-200">
+                <p className="text-sm font-medium text-slate-800">
+                  📁 파일 업로드 (구글 드라이브 자동 저장)
                 </p>
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="w-full"
+                      disabled={!selectedFile || uploading}
+                      onClick={async () => {
+                        if (!selectedFile) return;
+                        setUploading(true);
+                        try {
+                          const uploadData = new FormData();
+                          uploadData.append('file', selectedFile);
+                          uploadData.append('title', formData.title);
+                          uploadData.append('date', formData.date);
+                          uploadData.append('instructorName', formData.instructorName);
+
+                          const res = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: uploadData,
+                          });
+
+                          if (!res.ok) throw new Error('Upload failed');
+
+                          const data = await res.json();
+                          setFormData({ ...formData, materialUrl: data.materialUrl });
+                          toast.success("파일이 구글 드라이브에 업로드되었습니다!");
+                          setSelectedFile(null);
+                        } catch (error) {
+                          console.error(error);
+                          toast.error("파일 업로드 실패");
+                        } finally {
+                          setUploading(false);
+                        }
+                      }}
+                    >
+                      {uploading ? (
+                        <>
+                          <Clock className="w-4 h-4 mr-2 animate-spin" />
+                          업로드 중...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          드라이브에 업로드하기
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {formData.materialUrl && (
+                    <div className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                      <CheckCircle className="w-3 h-3" />
+                      업로드/설정 완료: <a href={formData.materialUrl} target="_blank" rel="noreferrer" className="underline truncate max-w-[200px] inline-block align-bottom">{formData.materialUrl}</a>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            <Button
-              className="w-full"
-              onClick={handleSubmit}
-              disabled={createEvent.isPending || updateEvent.isPending}
-            >
-              {createEvent.isPending || updateEvent.isPending
-                ? "처리 중..."
-                : editingEvent
-                  ? "수정하기"
-                  : "생성하기"}
-            </Button>
+            <div className="space-y-2">
+              <Label htmlFor="materialUrl">자료 링크 (URL)</Label>
+              <Input
+                id="materialUrl"
+                value={formData.materialUrl}
+                onChange={(e) =>
+                  setFormData({ ...formData, materialUrl: e.target.value })
+                }
+                placeholder="예: https://drive.google.com/drive/folders/..."
+              />
+              <p className="text-xs text-muted-foreground">
+                참여자가 후기를 작성하면 이 링크를 통해 자료를 다운로드할 수 있습니다.
+              </p>
+            </div>
           </div>
-        </DialogContent >
-      </Dialog >
+
+          <Button
+            className="w-full"
+            onClick={handleSubmit}
+            disabled={createEvent.isPending || updateEvent.isPending}
+          >
+            {createEvent.isPending || updateEvent.isPending
+              ? "처리 중..."
+              : editingEvent
+                ? "수정하기"
+                : "생성하기"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
     </div >
   );
 }
