@@ -767,9 +767,8 @@ export default function OrganizerPage() {
                 ? "수정하기"
                 : "생성하기"}
           </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-    </div >
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
