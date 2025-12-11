@@ -1,11 +1,12 @@
-
 import { google } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
+import dotenv from 'dotenv';
 
-// Load credentials
-const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
-const SCOPES = ['https://www.googleapis.com/auth/drive'];
+dotenv.config();
+
+// Load OAuth credentials
+const OAUTH_CREDENTIALS_PATH = path.join(process.cwd(), 'credentials_oauth.json');
 
 // The Shared Folder ID provided by the user
 const ROOT_FOLDER_ID = '1keiEChZOEX6iC7AocwALjrNGnmpjhdA3';
@@ -15,16 +16,48 @@ let authClient: any = null;
 async function getAuthClient() {
     if (authClient) return authClient;
 
-    if (!fs.existsSync(CREDENTIALS_PATH)) {
-        throw new Error('Credential file not found at ' + CREDENTIALS_PATH);
+    let clientId, clientSecret, refreshToken;
+
+    // Try loading from JSON file first
+    if (fs.existsSync(OAUTH_CREDENTIALS_PATH)) {
+        try {
+            const fileContent = fs.readFileSync(OAUTH_CREDENTIALS_PATH, 'utf-8');
+            // Parse line by line "KEY=VALUE" format since we saved it as .env style
+            const envConfig: any = {};
+            fileContent.split('\n').forEach(line => {
+                const parts = line.split('=');
+                if (parts.length >= 2) {
+                    const key = parts[0].trim();
+                    const value = parts.slice(1).join('=').trim();
+                    envConfig[key] = value;
+                }
+            });
+
+            clientId = envConfig.GOOGLE_CLIENT_ID;
+            clientSecret = envConfig.GOOGLE_CLIENT_SECRET;
+            refreshToken = envConfig.GOOGLE_REFRESH_TOKEN;
+        } catch (e) {
+            console.error('Error reading OAuth credentials file:', e);
+        }
     }
 
-    const auth = new google.auth.GoogleAuth({
-        keyFile: CREDENTIALS_PATH,
-        scopes: SCOPES,
+    // Fallback to environment variables if not found in file or file doesn't exist
+    clientId = clientId || process.env.GOOGLE_CLIENT_ID;
+    clientSecret = clientSecret || process.env.GOOGLE_CLIENT_SECRET;
+    refreshToken = refreshToken || process.env.GOOGLE_REFRESH_TOKEN;
+
+    if (!clientId || !clientSecret || !refreshToken) {
+        throw new Error('OAuth Credentials not found. Please set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN.');
+    }
+
+    const { OAuth2 } = google.auth;
+    const client = new OAuth2(clientId, clientSecret);
+
+    client.setCredentials({
+        refresh_token: refreshToken
     });
 
-    authClient = await auth.getClient();
+    authClient = client;
     return authClient;
 }
 

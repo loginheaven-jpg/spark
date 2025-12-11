@@ -112,3 +112,4 @@ backups/
 # Secrets (Google Drive API)
 credentials.json
 spark-480905-8e93be9992e9.json
+credentials_oauth.json
