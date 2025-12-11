@@ -12,7 +12,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calendar, Clock, Users, Tag, DollarSign, ChevronDown, CheckCircle2, UserCheck, UserPlus, Pencil, Trash2, Search, Link as LinkIcon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Calendar, Clock, Users, Tag, DollarSign, ChevronDown, CheckCircle2, UserCheck, UserPlus, Pencil, Trash2, Search, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import EventCalendar from "@/components/EventCalendar";
@@ -224,22 +225,44 @@ export default function Home() {
                       )}
                     </div>
 
-                    {/* 링크 복사 버튼 */}
+                    {/* 링크 복사/공유 버튼 */}
                     <div className="absolute top-4 right-16 z-10">
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="rounded-full shadow-md bg-white/80 hover:bg-white"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const link = `${window.location.origin}/event/${event.id}`;
-                          navigator.clipboard.writeText(link).then(() => {
-                            toast.success("링크가 복사되었습니다!");
-                          });
-                        }}
-                      >
-                        <LinkIcon className="h-4 w-4 text-slate-600" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="secondary"
+                            size="icon"
+                            className="rounded-full shadow-md bg-white/80 hover:bg-white"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const link = `${window.location.origin}/event/${event.id}`;
+
+                              if (navigator.share) {
+                                try {
+                                  await navigator.share({
+                                    title: event.title,
+                                    text: event.description || "이 모임에 함께 참여해요!",
+                                    url: link,
+                                  });
+                                } catch (err) {
+                                  // 사용자가 취소하거나 에러가 발생한 경우 (조용히 실패 혹은 무시)
+                                  console.log("Share skipped", err);
+                                }
+                              } else {
+                                // PC 등 공유 API 미지원 시 클립보드 복사
+                                navigator.clipboard.writeText(link).then(() => {
+                                  toast.success("링크가 복사되었습니다!");
+                                });
+                              }
+                            }}
+                          >
+                            <Share2 className="h-4 w-4 text-slate-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>모임소식을 복사해서 알리세요</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
 
                     <CardHeader>
