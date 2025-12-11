@@ -53,6 +53,14 @@ export default function Header() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation("/")}
+              className="hidden md:inline-flex"
+            >
+              전체 모임
+            </Button>
             {localUser ? (
               <>
                 <Button

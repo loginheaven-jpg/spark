@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calendar, Clock, Users, Tag, DollarSign, ChevronDown, CheckCircle2, UserCheck, UserPlus, Pencil, Trash2, Search } from "lucide-react";
+import { Calendar, Clock, Users, Tag, DollarSign, ChevronDown, CheckCircle2, UserCheck, UserPlus, Pencil, Trash2, Search, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import EventCalendar from "@/components/EventCalendar";
@@ -198,9 +198,10 @@ export default function Home() {
                 if (eventStatus === 'proposal') {
                   cardBorderClass += " border-dashed border-slate-300 shadow-sm";
                 } else if (eventStatus === 'confirmed') {
-                  cardBorderClass += " border-4 border-green-500 shadow-xl shadow-green-100 bg-green-50/30";
+                  // 진행 확정 (Proceeding) - Emerald
+                  cardBorderClass += " border-4 border-emerald-500 shadow-xl shadow-emerald-100 bg-emerald-50/30";
                 } else {
-                  // scheduled
+                  // 개설 확정 (Scheduled/Recruiting) - Violet
                   cardBorderClass += " border-blue-500 shadow-lg shadow-blue-100";
                 }
 
@@ -221,6 +222,24 @@ export default function Home() {
                           <UserPlus className="h-6 w-6" />
                         </div>
                       )}
+                    </div>
+
+                    {/* 링크 복사 버튼 */}
+                    <div className="absolute top-4 right-16 z-10">
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="rounded-full shadow-md bg-white/80 hover:bg-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const link = `${window.location.origin}/event/${event.id}`;
+                          navigator.clipboard.writeText(link).then(() => {
+                            toast.success("링크가 복사되었습니다!");
+                          });
+                        }}
+                      >
+                        <LinkIcon className="h-4 w-4 text-slate-600" />
+                      </Button>
                     </div>
 
                     <CardHeader>
