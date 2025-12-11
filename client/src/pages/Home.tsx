@@ -276,7 +276,7 @@ export default function Home() {
                           <div className="flex items-center justify-between text-sm">
                             <div className="flex items-center gap-2 text-slate-600">
                               <Users className="h-4 w-4" />
-                              <span>신청자</span>
+                              <span>신청자/최소인원</span>
                             </div>
                             <span className="font-medium text-slate-900">
                               {event._count?.registrations || 0} / {event.minParticipants}명

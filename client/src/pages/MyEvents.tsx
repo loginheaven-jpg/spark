@@ -168,7 +168,7 @@ export default function MyEvents() {
                       <div className="flex items-center gap-2 text-sm">
                         <Users className="w-4 h-4 text-muted-foreground" />
                         <span>
-                          신청자: {event._count?.registrations || 0}
+                          신청자/최소인원: {event._count?.registrations || 0}
                           {event.minParticipants && event.minParticipants > 0 ? ` / ${event.minParticipants}` : ""}명
                         </span>
                       </div>
