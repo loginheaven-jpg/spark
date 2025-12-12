@@ -140,7 +140,7 @@ export default function Home() {
             함께 배우고 성장하는 시간
           </h2>
           <p className="text-lg text-slate-600">
-            다양한 주제의 토론회와 강연회에 참여하세요
+            다양한 주제의 모임을 개설하고 참여하세요
           </p>
           <p className="text-sm text-slate-500 mt-2">
             관심 있는 모임을 선택하고 간편하게 신청할 수 있습니다
@@ -245,8 +245,13 @@ export default function Home() {
                                     url: link,
                                   });
                                 } catch (err) {
-                                  // 사용자가 취소하거나 에러가 발생한 경우 (조용히 실패 혹은 무시)
+                                  // 사용자가 취소하거나 에러가 발생한 경우 클립보드 복사 시도
                                   console.log("Share skipped", err);
+                                  navigator.clipboard.writeText(link).then(() => {
+                                    toast.success("링크가 복사되었습니다!");
+                                  }).catch(() => {
+                                    // 클립보드 복사도 실패한 경우 조용히 무시
+                                  });
                                 }
                               } else {
                                 // PC 등 공유 API 미지원 시 클립보드 복사

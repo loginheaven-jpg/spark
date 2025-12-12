@@ -39,7 +39,7 @@ export default function Header() {
             <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xl">S</span>
             </div>
-            <div>
+            <div className={`hidden md:block`}>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 SPARK
               </h1>
@@ -52,28 +52,21 @@ export default function Header() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setLocation("/")}
-              className="hidden md:inline-flex"
+              className="text-slate-600"
             >
               전체 모임
             </Button>
             {localUser ? (
               <>
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setLocation("/my-events")}
-                >
-                  내모임현황
-                </Button>
-                <Button
                   size="sm"
                   onClick={() => setLocation("/organizer")}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 whitespace-nowrap"
                 >
                   모임 개설
                 </Button>
@@ -94,6 +87,9 @@ export default function Header() {
                         관리자 대시보드
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem onClick={() => setLocation("/my-events")}>
+                      내모임현황
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setLocation("/profile")}>
                       정보수정
                     </DropdownMenuItem>
