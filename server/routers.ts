@@ -390,7 +390,7 @@ export const appRouter = router({
         minParticipants: z.number().default(0),
         maxParticipants: z.number().default(0),
         organizerParticipates: z.boolean().default(true),
-        eventStatus: z.enum(['proposal', 'scheduled', 'confirmed', 'completed']).optional(),
+        eventStatus: z.enum(['proposal', 'scheduled', 'confirmed']).optional(),
         materialUrl: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -458,7 +458,7 @@ export const appRouter = router({
         fee: z.number().optional(),
         date: z.string().optional(),
         timeRange: z.string().optional(),
-        eventStatus: z.enum(['proposal', 'scheduled', 'confirmed', 'completed']).optional(),
+        eventStatus: z.enum(['proposal', 'scheduled', 'confirmed']).optional(),
         minParticipants: z.number().optional(),
         maxParticipants: z.number().optional(),
         materialUrl: z.string().optional(),

@@ -200,14 +200,18 @@ export default function Home() {
                 let cardBorderClass = "border-2 opacity-90";
                 const eventStatus = event.eventStatus || (event.isProposal ? "proposal" : event.isConfirmed ? "confirmed" : "scheduled");
 
-                if (eventStatus === 'proposal') {
+                // 날짜가 지났으면 모임 종료로 표시
+                const isCompleted = event.date && new Date(event.date) < new Date(new Date().toDateString());
+                const displayStatus = isCompleted ? 'completed' : eventStatus;
+
+                if (displayStatus === 'proposal') {
                   cardBorderClass += " border-dashed border-slate-300 shadow-sm";
-                } else if (eventStatus === 'confirmed') {
-                  // 진행 확정 (Proceeding) - Emerald
-                  cardBorderClass += " border-4 border-emerald-500 shadow-xl shadow-emerald-100 bg-emerald-50/30";
-                } else if (eventStatus === 'completed') {
+                } else if (displayStatus === 'completed') {
                   // 모임 종료 - Gray
                   cardBorderClass += " border-slate-400 shadow-sm bg-slate-50/50 opacity-75";
+                } else if (displayStatus === 'confirmed') {
+                  // 진행 확정 (Proceeding) - Emerald
+                  cardBorderClass += " border-4 border-emerald-500 shadow-xl shadow-emerald-100 bg-emerald-50/30";
                 } else {
                   // 개설 진행중 (Scheduled/Recruiting) - Blue
                   cardBorderClass += " border-blue-500 shadow-lg shadow-blue-100";
@@ -290,25 +294,25 @@ export default function Home() {
                         {event.description}
                       </CardDescription>
                       <div className="flex gap-2 mt-2">
-                        {eventStatus === 'proposal' && (
+                        {displayStatus === 'proposal' && (
                           <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-slate-200">
                             모임 제안
                           </Badge>
                         )}
-                        {eventStatus === 'confirmed' && (
+                        {displayStatus === 'completed' && (
+                          <Badge variant="secondary" className="bg-slate-200 text-slate-600">
+                            모임 종료
+                          </Badge>
+                        )}
+                        {displayStatus === 'confirmed' && (
                           <Badge className="bg-green-600 text-white flex items-center gap-1 hover:bg-green-700">
                             <CheckCircle2 className="h-3 w-3" />
                             진행 확정
                           </Badge>
                         )}
-                        {eventStatus === 'scheduled' && (
+                        {displayStatus === 'scheduled' && (
                           <Badge className="bg-blue-600 text-white hover:bg-blue-700">
                             개설 진행중
-                          </Badge>
-                        )}
-                        {eventStatus === 'completed' && (
-                          <Badge variant="secondary" className="bg-slate-200 text-slate-600">
-                            모임 종료
                           </Badge>
                         )}
                       </div>
