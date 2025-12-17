@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Users, CheckCircle2, Mail, Phone, Copy } from "lucide-react";
+import { Calendar, Clock, Users, CheckCircle2, Mail, Phone, Copy, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation, useRoute } from "wouter";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -158,23 +158,52 @@ export default function EventDetailPage() {
                   )}
                 </div>
               </div>
-              {isRegistered ? (
+              <div className="flex gap-2">
+                {isRegistered ? (
+                  <Button
+                    variant="outline"
+                    onClick={handleUnregister}
+                    disabled={unregisterFromEvent.isPending}
+                  >
+                    참여 취소
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleRegister}
+                    disabled={registerForEvent.isPending}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  >
+                    참여 신청
+                  </Button>
+                )}
                 <Button
                   variant="outline"
-                  onClick={handleUnregister}
-                  disabled={unregisterFromEvent.isPending}
+                  onClick={async () => {
+                    const link = `${window.location.origin}/event/${eventId}`;
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({
+                          title: event?.title,
+                          text: event?.description || "이 모임에 함께 참여해요!",
+                          url: link,
+                        });
+                      } catch (err) {
+                        console.log("Share skipped", err);
+                        navigator.clipboard.writeText(link).then(() => {
+                          toast.success("링크가 복사되었습니다!");
+                        }).catch(() => {});
+                      }
+                    } else {
+                      navigator.clipboard.writeText(link).then(() => {
+                        toast.success("링크가 복사되었습니다!");
+                      });
+                    }
+                  }}
                 >
-                  참여 취소
+                  <Share2 className="h-4 w-4 mr-1" />
+                  모임 공유
                 </Button>
-              ) : (
-                <Button
-                  onClick={handleRegister}
-                  disabled={registerForEvent.isPending}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                >
-                  참여 신청
-                </Button>
-              )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">

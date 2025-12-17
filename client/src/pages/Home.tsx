@@ -168,11 +168,15 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded border-2 border-blue-500 bg-white"></div>
-              <span>개설 확정 (모집중)</span>
+              <span>개설 진행중</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded border-4 border-green-500 bg-green-50"></div>
-              <span>진행 확정 (참석가능)</span>
+              <span>진행 확정</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded border-2 border-slate-400 bg-slate-100"></div>
+              <span>모임 종료</span>
             </div>
           </div>
         </div>
@@ -201,8 +205,11 @@ export default function Home() {
                 } else if (eventStatus === 'confirmed') {
                   // 진행 확정 (Proceeding) - Emerald
                   cardBorderClass += " border-4 border-emerald-500 shadow-xl shadow-emerald-100 bg-emerald-50/30";
+                } else if (eventStatus === 'completed') {
+                  // 모임 종료 - Gray
+                  cardBorderClass += " border-slate-400 shadow-sm bg-slate-50/50 opacity-75";
                 } else {
-                  // 개설 확정 (Scheduled/Recruiting) - Violet
+                  // 개설 진행중 (Scheduled/Recruiting) - Blue
                   cardBorderClass += " border-blue-500 shadow-lg shadow-blue-100";
                 }
 
@@ -296,7 +303,12 @@ export default function Home() {
                         )}
                         {eventStatus === 'scheduled' && (
                           <Badge className="bg-blue-600 text-white hover:bg-blue-700">
-                            개설 확정
+                            개설 진행중
+                          </Badge>
+                        )}
+                        {eventStatus === 'completed' && (
+                          <Badge variant="secondary" className="bg-slate-200 text-slate-600">
+                            모임 종료
                           </Badge>
                         )}
                       </div>

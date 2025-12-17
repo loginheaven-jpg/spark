@@ -56,7 +56,7 @@ export const events = mysqlTable("events", {
   minParticipants: int("minParticipants").default(0),
   maxParticipants: int("maxParticipants").default(0),
   isConfirmed: int("isConfirmed").default(0).notNull(),
-  eventStatus: mysqlEnum("eventStatus", ["proposal", "scheduled", "confirmed"]).default("scheduled").notNull(),
+  eventStatus: mysqlEnum("eventStatus", ["proposal", "scheduled", "confirmed", "completed"]).default("scheduled").notNull(),
   status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
   materialUrl: varchar("materialUrl", { length: 500 }),
   materialContent: text("materialContent"),

@@ -339,8 +339,10 @@ export default function OrganizerPage() {
                       <Badge variant="outline">모임 제안</Badge>
                     ) : event.eventStatus === 'confirmed' ? (
                       <Badge variant="default" className="bg-green-600 hover:bg-green-700">진행 확정</Badge>
+                    ) : event.eventStatus === 'completed' ? (
+                      <Badge variant="secondary" className="bg-slate-200 text-slate-600">모임 종료</Badge>
                     ) : (
-                      <Badge variant="secondary">개설 확정</Badge>
+                      <Badge variant="secondary">개설 진행중</Badge>
                     )}
                     <div className="flex gap-2 mt-4">
                       <Button
@@ -552,7 +554,7 @@ export default function OrganizerPage() {
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="scheduled" id="status-scheduled" />
                   <Label htmlFor="status-scheduled" className="font-normal cursor-pointer">
-                    <span className="font-medium">개설 확정 (Scheduled)</span>
+                    <span className="font-medium">개설 진행중 (Scheduled)</span>
                     <span className="ml-2 text-muted-foreground text-sm">- 최소인원 신청되면 진행확정</span>
                   </Label>
                 </div>
@@ -561,6 +563,13 @@ export default function OrganizerPage() {
                   <Label htmlFor="status-confirmed" className="font-normal cursor-pointer">
                     <span className="font-medium">진행 확정 (Confirmed)</span>
                     <span className="ml-2 text-muted-foreground text-sm">- 진행이 확정되었습니다</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="completed" id="status-completed" />
+                  <Label htmlFor="status-completed" className="font-normal cursor-pointer">
+                    <span className="font-medium">모임 종료 (Completed)</span>
+                    <span className="ml-2 text-muted-foreground text-sm">- 모임이 종료되었습니다</span>
                   </Label>
                 </div>
               </RadioGroup>
