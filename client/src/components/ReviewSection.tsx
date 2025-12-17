@@ -17,12 +17,15 @@ export function ReviewSection({ eventId }: ReviewSectionProps) {
 
     const { data: reviews, isLoading, refetch } = trpc.reviews.list.useQuery({ eventId });
     const { data: me } = trpc.localAuth.me.useQuery();
+    const utils = trpc.useUtils();
     const createReview = trpc.reviews.create.useMutation({
         onSuccess: () => {
             toast.success("후기가 등록되었습니다.");
             setContent("");
             setIsWriting(false);
             refetch();
+            // 후기 작성 후 이벤트 데이터 갱신 (자료 접근 권한 업데이트)
+            utils.events.getById.invalidate({ id: eventId });
         },
         onError: (err) => {
             toast.error(err.message);

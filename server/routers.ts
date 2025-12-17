@@ -351,7 +351,11 @@ export const appRouter = router({
   events: router({
     // 참여자용: 승인된 모임만 조회
     listApproved: publicProcedure.query(async () => {
-      return await db.getApprovedEvents();
+      const events = await db.getApprovedEvents();
+      return events.map((event: any) => ({
+        ...event,
+        hasMaterial: !!(event.materialUrl || event.materialContent),
+      }));
     }),
 
     // 관리자용: 모든 모임 조회
@@ -372,8 +376,48 @@ export const appRouter = router({
     // 모임 상세 조회
     getById: publicProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
-        return await db.getEventById(input.id);
+      .query(async ({ ctx, input }) => {
+        const event = await db.getEventById(input.id);
+        if (!event) return null;
+
+        // 현재 로그인한 사용자 확인
+        let currentUser = null;
+        const localUserId = ctx.req.cookies?.local_user_id;
+        if (localUserId) {
+          const userId = parseInt(localUserId, 10);
+          if (!isNaN(userId)) {
+            currentUser = await db.getUserById(userId);
+          }
+        }
+
+        // 자료 유무 확인
+        const hasMaterial = !!(event.materialUrl || event.materialContent);
+
+        // 참여자 여부 확인
+        let isParticipant = false;
+        let hasReviewed = false;
+
+        if (currentUser) {
+          isParticipant = await db.checkRegistrationExistsByUserId(input.id, currentUser.id);
+
+          // 후기 작성 여부 확인
+          const existingReview = await db.getReviewByUserAndEvent(currentUser.id, input.id);
+          hasReviewed = !!existingReview;
+        }
+
+        // 자료 접근 권한: 어드민 OR (참여자 AND 후기작성)
+        const canAccessMaterial = currentUser?.role === 'admin' || (isParticipant && hasReviewed);
+
+        return {
+          ...event,
+          hasMaterial,
+          isParticipant,
+          hasReviewed,
+          canAccessMaterial,
+          // 권한 없으면 자료 내용 숨김
+          materialUrl: canAccessMaterial ? event.materialUrl : null,
+          materialContent: canAccessMaterial ? event.materialContent : null,
+        };
       }),
 
     // 모임 생성 (주관자 - 로컬 로그인 필요)

@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Users, CheckCircle2, Mail, Phone, Copy, Share2 } from "lucide-react";
+import { Calendar, Clock, Users, CheckCircle2, Mail, Phone, Copy, Share2, FileText, Lock, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation, useRoute } from "wouter";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -314,6 +314,72 @@ export default function EventDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* 모임 자료 섹션 */}
+        {event.hasMaterial && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                모임 자료
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {event.canAccessMaterial ? (
+                <div className="space-y-4">
+                  {event.materialUrl && (
+                    <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <ExternalLink className="h-5 w-5 text-blue-600" />
+                      <div className="flex-1">
+                        <p className="font-medium text-blue-900">자료 링크</p>
+                        <a
+                          href={event.materialUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline text-sm break-all"
+                        >
+                          {event.materialUrl}
+                        </a>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => window.open(event.materialUrl!, '_blank')}
+                      >
+                        열기
+                      </Button>
+                    </div>
+                  )}
+                  {event.materialContent && (
+                    <div className="p-4 bg-slate-50 rounded-lg border">
+                      <p className="font-medium text-slate-900 mb-2">자료 내용</p>
+                      <p className="text-slate-700 whitespace-pre-wrap">{event.materialContent}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+                  <Lock className="h-12 w-12 mx-auto text-slate-400 mb-3" />
+                  {event.isParticipant ? (
+                    <>
+                      <p className="text-slate-600 font-medium">후기를 작성하면 자료를 열람할 수 있습니다</p>
+                      <p className="text-slate-500 text-sm mt-1">아래 후기 섹션에서 후기를 작성해주세요</p>
+                    </>
+                  ) : isRegistered ? (
+                    <>
+                      <p className="text-slate-600 font-medium">후기를 작성하면 자료를 열람할 수 있습니다</p>
+                      <p className="text-slate-500 text-sm mt-1">아래 후기 섹션에서 후기를 작성해주세요</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-slate-600 font-medium">참여자만 자료를 열람할 수 있습니다</p>
+                      <p className="text-slate-500 text-sm mt-1">모임에 참여 신청 후 후기를 작성해주세요</p>
+                    </>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* 후기 섹션 */}
         <ReviewSection eventId={event.id} />

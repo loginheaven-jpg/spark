@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Calendar, Clock, Users, Tag, DollarSign, ChevronDown, CheckCircle2, UserCheck, UserPlus, Pencil, Trash2, Search, Share2 } from "lucide-react";
+import { Calendar, Clock, Users, Tag, DollarSign, ChevronDown, CheckCircle2, UserCheck, UserPlus, Pencil, Trash2, Search, Share2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import EventCalendar from "@/components/EventCalendar";
@@ -313,6 +313,12 @@ export default function Home() {
                         {displayStatus === 'scheduled' && (
                           <Badge className="bg-blue-600 text-white hover:bg-blue-700">
                             개설 진행중
+                          </Badge>
+                        )}
+                        {event.hasMaterial && (
+                          <Badge variant="outline" className="border-amber-500 text-amber-700 bg-amber-50">
+                            <FileText className="h-3 w-3 mr-1" />
+                            자료 제공
                           </Badge>
                         )}
                       </div>
