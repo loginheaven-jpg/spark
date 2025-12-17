@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar, Clock, Plus, Edit, Trash2, CheckCircle, Upload, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { isEventCompleted } from "@/lib/eventUtils";
 
 
 export default function OrganizerPage() {
@@ -374,7 +375,7 @@ export default function OrganizerPage() {
                       {event.fee === 0 ? "무료" : `${event.fee.toLocaleString()}원`}
                     </div>
                     {(() => {
-                      const isCompleted = event.date && new Date(event.date) < new Date(new Date().toDateString());
+                      const isCompleted = isEventCompleted(event.date, event.timeRange);
                       if (isCompleted) return <Badge variant="secondary" className="bg-slate-200 text-slate-600">모임 종료</Badge>;
                       if (event.eventStatus === 'proposal') return <Badge variant="outline">모임 제안</Badge>;
                       if (event.eventStatus === 'confirmed') return <Badge variant="default" className="bg-green-600 hover:bg-green-700">진행 확정</Badge>;

@@ -19,6 +19,7 @@ import { useLocation } from "wouter";
 import EventCalendar from "@/components/EventCalendar";
 import { AuthModal } from "@/components/AuthModal";
 import { PendingReviewModal } from "@/components/PendingReviewModal";
+import { isEventCompleted } from "@/lib/eventUtils";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -200,8 +201,8 @@ export default function Home() {
                 let cardBorderClass = "border-2 opacity-90";
                 const eventStatus = event.eventStatus || (event.isProposal ? "proposal" : event.isConfirmed ? "confirmed" : "scheduled");
 
-                // 날짜가 지났으면 모임 종료로 표시
-                const isCompleted = event.date && new Date(event.date) < new Date(new Date().toDateString());
+                // 날짜+시간 기준 모임 종료 판단
+                const isCompleted = isEventCompleted(event.date, event.timeRange);
                 const displayStatus = isCompleted ? 'completed' : eventStatus;
 
                 if (displayStatus === 'proposal') {
