@@ -18,9 +18,12 @@ import { useLocation } from "wouter";
 
 export default function OrganizerPage() {
   const { data: user, isLoading: loading } = trpc.localAuth.me.useQuery();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
+
+  // URL에서 edit 파라미터 읽기
+  const editEventId = new URLSearchParams(window.location.search).get('edit');
 
   // localStorage에서 저장된 폼 데이터 불러오기
   const loadFormDataFromStorage = () => {
@@ -70,6 +73,12 @@ export default function OrganizerPage() {
   });
   const { data: availableSlots } = trpc.availableSlots.list.useQuery();
 
+  // 어드민이 다른 사람의 모임을 수정하려는 경우 해당 모임 가져오기
+  const { data: editTargetEvent } = trpc.events.getById.useQuery(
+    { id: parseInt(editEventId || '0', 10) },
+    { enabled: !!editEventId && !!user }
+  );
+
   const createEvent = trpc.events.create.useMutation();
   const updateEvent = trpc.events.update.useMutation();
   const deleteEvent = trpc.events.delete.useMutation();
@@ -89,6 +98,35 @@ export default function OrganizerPage() {
       localStorage.removeItem('eventFormData');
     }
   }, [showCreateDialog]);
+
+  // URL에 edit 파라미터가 있고, 모임 정보가 로드되면 수정 다이얼로그 열기
+  useEffect(() => {
+    if (editTargetEvent && editEventId && user) {
+      // 어드민이거나 본인의 모임인 경우에만 수정 가능
+      if (user.role === 'admin' || editTargetEvent.organizerId === user.id) {
+        setEditingEvent(editTargetEvent);
+        setFormData({
+          title: editTargetEvent.title,
+          description: editTargetEvent.description || "",
+          keywords: editTargetEvent.keywords || "",
+          instructorName: editTargetEvent.instructorName || "",
+          fee: editTargetEvent.fee,
+          date: editTargetEvent.date || "",
+          timeRange: editTargetEvent.timeRange || "",
+          isProposal: editTargetEvent.isProposal === 1,
+          eventStatus: editTargetEvent.eventStatus as "proposal" | "scheduled" | "confirmed",
+          minParticipants: editTargetEvent.minParticipants || 0,
+          maxParticipants: editTargetEvent.maxParticipants || 0,
+          organizerParticipates: true,
+          materialUrl: editTargetEvent.materialUrl || "",
+          materialContent: editTargetEvent.materialContent || "",
+        });
+        setShowCreateDialog(true);
+        // URL에서 edit 파라미터 제거
+        window.history.replaceState({}, '', '/organizer');
+      }
+    }
+  }, [editTargetEvent, editEventId, user]);
 
   if (loading) {
     return (
