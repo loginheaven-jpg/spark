@@ -186,6 +186,16 @@ export async function getUserByEmail(email: string) {
   return result.length > 0 ? result[0] : null;
 }
 
+export async function getAdminUsers() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get admins: database not available");
+    return [];
+  }
+
+  return await db.select().from(users).where(eq(users.role, 'admin'));
+}
+
 export async function updateUser(id: number, updates: Partial<InsertUser>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

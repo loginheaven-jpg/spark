@@ -13,6 +13,8 @@ interface EmailParams {
  */
 export async function sendEmail({ to, subject, content }: EmailParams): Promise<boolean> {
   try {
+    console.log(`[Email] Attempting to send email to ${to}, subject: ${subject}`);
+
     // For now, we'll use the owner notification system to log email attempts
     // In production, integrate with a real email service
     const result = await notifyOwner({
@@ -20,12 +22,15 @@ export async function sendEmail({ to, subject, content }: EmailParams): Promise<
       content: `수신자: ${to}\n\n${content}`,
     });
 
-    // Log the email attempt
-    console.log(`[Email] Sent to ${to}: ${subject}`);
-    
+    if (result) {
+      console.log(`[Email] Successfully sent to ${to}`);
+    } else {
+      console.log(`[Email] notifyOwner returned false for ${to}`);
+    }
+
     return result;
-  } catch (error) {
-    console.error("[Email] Failed to send email:", error);
+  } catch (error: any) {
+    console.error(`[Email] Failed to send email to ${to}:`, error?.message || error);
     return false;
   }
 }

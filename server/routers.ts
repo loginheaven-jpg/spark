@@ -713,9 +713,12 @@ export const appRouter = router({
         let successCount = 0;
         let failCount = 0;
 
+        console.log(`[Notify] Starting notification for event ${input.eventId}, ${registrations.length} participants`);
+
         for (const reg of registrations) {
           if (reg.participantEmail && reg.participantName) {
             try {
+              console.log(`[Notify] Sending to ${reg.participantEmail}`);
               const sent = await sendParticipantNotification(
                 reg.participantEmail,
                 reg.participantName,
@@ -728,15 +731,64 @@ export const appRouter = router({
               );
               if (sent) {
                 successCount++;
+                console.log(`[Notify] Success: ${reg.participantEmail}`);
               } else {
                 failCount++;
+                console.log(`[Notify] Failed (returned false): ${reg.participantEmail}`);
               }
             } catch (error) {
-              console.error(`[Email] Failed to notify ${reg.participantEmail}:`, error);
+              console.error(`[Notify] Error for ${reg.participantEmail}:`, error);
               failCount++;
             }
           }
         }
+
+        // 발송자(주관자)에게 확인용 메일 발송
+        if (user.email && user.name) {
+          try {
+            console.log(`[Notify] Sending copy to sender: ${user.email}`);
+            await sendParticipantNotification(
+              user.email,
+              user.name,
+              event.title,
+              event.date,
+              event.timeRange,
+              `[발송확인] ${input.subject}`,
+              `※ 이 메일은 발송 확인용입니다.\n\n수신자: ${registrations.length}명\n성공: ${successCount}명 / 실패: ${failCount}명\n\n--- 발송된 내용 ---\n${input.content}`,
+              eventUrl
+            );
+            console.log(`[Notify] Copy sent to sender: ${user.email}`);
+          } catch (error) {
+            console.error(`[Notify] Failed to send copy to sender:`, error);
+          }
+        }
+
+        // 관리자들에게도 확인용 메일 발송 (발송자가 관리자가 아닌 경우)
+        const admins = await db.getAdminUsers();
+        for (const admin of admins) {
+          // 발송자 본인이 관리자면 이미 위에서 발송했으므로 스킵
+          if (admin.id === user.id) continue;
+          if (admin.email && admin.name) {
+            try {
+              console.log(`[Notify] Sending copy to admin: ${admin.email}`);
+              await sendParticipantNotification(
+                admin.email,
+                admin.name,
+                event.title,
+                event.date,
+                event.timeRange,
+                `[관리자확인] ${input.subject}`,
+                `※ 이 메일은 관리자 확인용입니다.\n발송자: ${user.name} (${user.email})\n\n수신자: ${registrations.length}명\n성공: ${successCount}명 / 실패: ${failCount}명\n\n--- 발송된 내용 ---\n${input.content}`,
+                eventUrl
+              );
+              console.log(`[Notify] Copy sent to admin: ${admin.email}`);
+            } catch (error) {
+              console.error(`[Notify] Failed to send copy to admin ${admin.email}:`, error);
+            }
+          }
+        }
+
+        console.log(`[Notify] Completed: ${successCount} success, ${failCount} failed`);
 
         return {
           success: true,
