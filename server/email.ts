@@ -18,10 +18,13 @@ function getTransporter(): nodemailer.Transporter {
 
     console.log(`[Email] Creating transporter: host=${ENV.smtpHost}, port=${ENV.smtpPort}, user=${ENV.smtpUser ? '***' : 'empty'}`);
 
+    // Port 465 uses SSL, Port 587 uses STARTTLS
+    const useSSL = ENV.smtpPort === 465;
+
     transporter = nodemailer.createTransport({
       host: ENV.smtpHost,
       port: ENV.smtpPort,
-      secure: false, // use STARTTLS
+      secure: useSSL,
       auth: {
         user: ENV.smtpUser,
         pass: ENV.smtpPass,
