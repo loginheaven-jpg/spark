@@ -1,4 +1,5 @@
-import { notifyOwner } from "./_core/notification";
+import nodemailer from "nodemailer";
+import { ENV } from "./_core/env";
 
 interface EmailParams {
   to: string;
@@ -6,29 +7,59 @@ interface EmailParams {
   content: string;
 }
 
+// Create reusable transporter
+let transporter: nodemailer.Transporter | null = null;
+
+function getTransporter(): nodemailer.Transporter {
+  if (!transporter) {
+    if (!ENV.smtpUser || !ENV.smtpPass) {
+      console.warn("[Email] SMTP credentials not configured. Using test mode.");
+    }
+
+    transporter = nodemailer.createTransport({
+      host: ENV.smtpHost,
+      port: ENV.smtpPort,
+      secure: false, // TLS
+      auth: {
+        user: ENV.smtpUser,
+        pass: ENV.smtpPass,
+      },
+    });
+  }
+  return transporter;
+}
+
 /**
- * Send email notification
- * Currently uses the owner notification system as a fallback
- * In production, this should be replaced with a proper email service (e.g., SendGrid, AWS SES)
+ * Send email using SMTP (Mailtrap)
+ *
+ * Environment variables required:
+ * - SMTP_HOST: Mailtrap host (default: sandbox.smtp.mailtrap.io)
+ * - SMTP_PORT: Mailtrap port (default: 2525)
+ * - SMTP_USER: Mailtrap username
+ * - SMTP_PASS: Mailtrap password
+ * - SMTP_FROM: Sender email (default: noreply@spark.app)
  */
 export async function sendEmail({ to, subject, content }: EmailParams): Promise<boolean> {
   try {
     console.log(`[Email] Attempting to send email to ${to}, subject: ${subject}`);
 
-    // For now, we'll use the owner notification system to log email attempts
-    // In production, integrate with a real email service
-    const result = await notifyOwner({
-      title: `이메일 발송: ${subject}`,
-      content: `수신자: ${to}\n\n${content}`,
-    });
-
-    if (result) {
-      console.log(`[Email] Successfully sent to ${to}`);
-    } else {
-      console.log(`[Email] notifyOwner returned false for ${to}`);
+    if (!ENV.smtpUser || !ENV.smtpPass) {
+      console.error("[Email] SMTP credentials not configured. Set SMTP_USER and SMTP_PASS environment variables.");
+      return false;
     }
 
-    return result;
+    const transport = getTransporter();
+
+    const info = await transport.sendMail({
+      from: ENV.smtpFrom,
+      to,
+      subject,
+      text: content,
+      html: content.replace(/\n/g, "<br>"),
+    });
+
+    console.log(`[Email] Successfully sent to ${to}, messageId: ${info.messageId}`);
+    return true;
   } catch (error: any) {
     console.error(`[Email] Failed to send email to ${to}:`, error?.message || error);
     return false;
