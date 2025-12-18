@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { ENV } from "./_core/env";
 
 interface EmailParams {
@@ -7,66 +7,47 @@ interface EmailParams {
   content: string;
 }
 
-// Create reusable transporter
-let transporter: nodemailer.Transporter | null = null;
+// Resend client (lazy initialization)
+let resend: Resend | null = null;
 
-function getTransporter(): nodemailer.Transporter {
-  if (!transporter) {
-    if (!ENV.smtpUser || !ENV.smtpPass) {
-      console.warn("[Email] SMTP credentials not configured. Using test mode.");
-    }
-
-    console.log(`[Email] Creating transporter: host=${ENV.smtpHost}, port=${ENV.smtpPort}, user=${ENV.smtpUser ? '***' : 'empty'}`);
-
-    // Port 465 uses SSL, Port 587 uses STARTTLS
-    const useSSL = ENV.smtpPort === 465;
-
-    transporter = nodemailer.createTransport({
-      host: ENV.smtpHost,
-      port: ENV.smtpPort,
-      secure: useSSL,
-      auth: {
-        user: ENV.smtpUser,
-        pass: ENV.smtpPass,
-      },
-      connectionTimeout: 10000, // 10 seconds
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-    });
+function getResend(): Resend {
+  if (!resend) {
+    resend = new Resend(ENV.resendApiKey);
   }
-  return transporter;
+  return resend;
 }
 
 /**
- * Send email using SMTP (Mailtrap)
+ * Send email using Resend (HTTP API)
  *
  * Environment variables required:
- * - SMTP_HOST: Mailtrap host (default: sandbox.smtp.mailtrap.io)
- * - SMTP_PORT: Mailtrap port (default: 2525)
- * - SMTP_USER: Mailtrap username
- * - SMTP_PASS: Mailtrap password
- * - SMTP_FROM: Sender email (default: noreply@spark.app)
+ * - RESEND_API_KEY: Resend API key
  */
 export async function sendEmail({ to, subject, content }: EmailParams): Promise<boolean> {
   try {
     console.log(`[Email] Attempting to send email to ${to}, subject: ${subject}`);
 
-    if (!ENV.smtpUser || !ENV.smtpPass) {
-      console.error("[Email] SMTP credentials not configured. Set SMTP_USER and SMTP_PASS environment variables.");
+    if (!ENV.resendApiKey) {
+      console.error("[Email] RESEND_API_KEY not configured. Set RESEND_API_KEY environment variable.");
       return false;
     }
 
-    const transport = getTransporter();
+    const client = getResend();
 
-    const info = await transport.sendMail({
-      from: ENV.smtpFrom,
-      to,
+    const { data, error } = await client.emails.send({
+      from: "SPARK <onboarding@resend.dev>", // Free tier default sender
+      to: [to],
       subject,
       text: content,
       html: content.replace(/\n/g, "<br>"),
     });
 
-    console.log(`[Email] Successfully sent to ${to}, messageId: ${info.messageId}`);
+    if (error) {
+      console.error(`[Email] Failed to send email to ${to}:`, error);
+      return false;
+    }
+
+    console.log(`[Email] Successfully sent to ${to}, id: ${data?.id}`);
     return true;
   } catch (error: any) {
     console.error(`[Email] Failed to send email to ${to}:`, error?.message || error);
