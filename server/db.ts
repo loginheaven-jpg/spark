@@ -1,5 +1,5 @@
 import mysql from "mysql2/promise";
-import { eq, and, desc, count, sql } from "drizzle-orm";
+import { eq, and, desc, count, sql, isNull, isNotNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
@@ -66,6 +66,14 @@ export async function runMigrations() {
     try {
       await db.execute(sql`ALTER TABLE events ADD COLUMN materialContent TEXT`);
       console.log("[Database] Migration: 'materialContent' column added.");
+    } catch (e: any) {
+      if (e.code !== 'ER_DUP_FIELDNAME' && e.errno !== 1060) console.warn(e);
+    }
+
+    // Attempt to add deletedAt column for soft delete
+    try {
+      await db.execute(sql`ALTER TABLE events ADD COLUMN deletedAt TIMESTAMP NULL DEFAULT NULL`);
+      console.log("[Database] Migration: 'deletedAt' column added.");
     } catch (e: any) {
       if (e.code !== 'ER_DUP_FIELDNAME' && e.errno !== 1060) console.warn(e);
     }
@@ -226,7 +234,7 @@ export async function getApprovedEvents() {
     })
     .from(events)
     .leftJoin(registrations, eq(events.id, registrations.eventId))
-    .where(eq(events.status, 'approved'))
+    .where(and(eq(events.status, 'approved'), isNull(events.deletedAt)))
     .groupBy(events.id)
     .orderBy(desc(events.createdAt));
 
@@ -287,7 +295,7 @@ export async function getEventsByOrganizerWithCount(organizerId: number) {
     })
     .from(events)
     .leftJoin(registrations, eq(events.id, registrations.eventId))
-    .where(eq(events.organizerId, organizerId))
+    .where(and(eq(events.organizerId, organizerId), isNull(events.deletedAt)))
     .groupBy(events.id)
     .orderBy(desc(events.createdAt));
 
@@ -322,6 +330,70 @@ export async function deleteEvent(id: number) {
 
   // 그 다음 event 삭제
   return await db.delete(events).where(eq(events.id, id));
+}
+
+// ===== Soft Delete Functions =====
+export async function softDeleteEvent(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.update(events).set({ deletedAt: new Date() }).where(eq(events.id, id));
+}
+
+export async function restoreEvent(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.update(events).set({ deletedAt: null }).where(eq(events.id, id));
+}
+
+export async function getDeletedEventsByOrganizer(organizerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db
+    .select({
+      event: events,
+      registrationCount: count(registrations.id),
+    })
+    .from(events)
+    .leftJoin(registrations, eq(events.id, registrations.eventId))
+    .where(and(eq(events.organizerId, organizerId), isNotNull(events.deletedAt)))
+    .groupBy(events.id)
+    .orderBy(desc(events.deletedAt));
+
+  return result.map(row => ({
+    ...row.event,
+    _count: {
+      registrations: Number(row.registrationCount) || 0,
+    },
+  }));
+}
+
+export async function getAllDeletedEvents() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db
+    .select({
+      event: events,
+      organizer: users,
+      registrationCount: count(registrations.id),
+    })
+    .from(events)
+    .leftJoin(users, eq(events.organizerId, users.id))
+    .leftJoin(registrations, eq(events.id, registrations.eventId))
+    .where(isNotNull(events.deletedAt))
+    .groupBy(events.id, users.id)
+    .orderBy(desc(events.deletedAt));
+
+  return result.map(row => ({
+    ...row.event,
+    organizer: row.organizer,
+    _count: {
+      registrations: Number(row.registrationCount) || 0,
+    },
+  }));
 }
 
 // ===== Participants =====

@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Calendar, Clock, Plus, Edit, Trash2, CheckCircle, Upload, ExternalLink } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar, Clock, Plus, Edit, Trash2, CheckCircle, Upload, ExternalLink, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { isEventCompleted } from "@/lib/eventUtils";
@@ -69,7 +70,10 @@ export default function OrganizerPage() {
     }
   }, [user]);
 
-  const { data: myEvents } = trpc.events.listMine.useQuery(undefined, {
+  const { data: myEvents } = trpc.events.myEvents.useQuery(undefined, {
+    enabled: !!user,
+  });
+  const { data: deletedEvents } = trpc.events.listMyDeleted.useQuery(undefined, {
     enabled: !!user,
   });
   const { data: availableSlots } = trpc.availableSlots.list.useQuery();
@@ -83,8 +87,13 @@ export default function OrganizerPage() {
   const createEvent = trpc.events.create.useMutation();
   const updateEvent = trpc.events.update.useMutation();
   const deleteEvent = trpc.events.delete.useMutation();
-  const updateProfile = trpc.localAuth.updateProfile.useMutation(); // Add profile update mutation
+  const restoreEvent = trpc.events.restore.useMutation();
+  const hardDeleteEvent = trpc.events.hardDelete.useMutation();
+  const updateProfile = trpc.localAuth.updateProfile.useMutation();
   const utils = trpc.useUtils();
+
+  // 탭 상태
+  const [activeTab, setActiveTab] = useState("active");
 
   // formData가 변경될 때마다 localStorage에 저장
   useEffect(() => {
@@ -263,8 +272,32 @@ export default function OrganizerPage() {
 
     try {
       await deleteEvent.mutateAsync({ id });
-      toast.success("모임이 삭제되었습니다.");
-      utils.events.listMine.invalidate();
+      toast.success("모임이 삭제되었습니다. '삭제된 모임' 탭에서 복원할 수 있습니다.");
+      utils.events.myEvents.invalidate();
+      utils.events.listMyDeleted.invalidate();
+    } catch (error) {
+      toast.error("삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleRestore = async (id: number) => {
+    try {
+      await restoreEvent.mutateAsync({ id });
+      toast.success("모임이 복원되었습니다.");
+      utils.events.myEvents.invalidate();
+      utils.events.listMyDeleted.invalidate();
+    } catch (error) {
+      toast.error("복원 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleHardDelete = async (id: number) => {
+    if (!confirm("완전 삭제하면 복구할 수 없습니다. 정말 삭제하시겠습니까?")) return;
+
+    try {
+      await hardDeleteEvent.mutateAsync({ id });
+      toast.success("모임이 완전히 삭제되었습니다.");
+      utils.events.listMyDeleted.invalidate();
     } catch (error) {
       toast.error("삭제 중 오류가 발생했습니다.");
     }
@@ -324,99 +357,183 @@ export default function OrganizerPage() {
             </Button>
           </div>
 
-          <div className="grid gap-4">
-            {myEvents && myEvents.length > 0 ? (
-              myEvents.map((event) => (
-                <Card key={event.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle>{event.title}</CardTitle>
-                        <CardDescription className="mt-2">
-                          {event.description}
-                        </CardDescription>
-                      </div>
-                      <Badge
-                        variant={
-                          event.status === "approved"
-                            ? "default"
-                            : event.status === "rejected"
-                              ? "destructive"
-                              : "secondary"
-                        }
-                      >
-                        {event.status === "approved"
-                          ? "승인됨"
-                          : event.status === "rejected"
-                            ? "거부됨"
-                            : "승인 대기"}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span>{event.date || "일시 미정"}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <span>{event.timeRange || "시간 미정"}</span>
-                      </div>
-                    </div>
-                    {event.keywords && (
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">키워드: </span>
-                        {event.keywords}
-                      </div>
-                    )}
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">참가비: </span>
-                      {event.fee === 0 ? "무료" : `${event.fee.toLocaleString()}원`}
-                    </div>
-                    {(() => {
-                      const isCompleted = isEventCompleted(event.date, event.timeRange);
-                      if (isCompleted) return <Badge variant="secondary" className="bg-slate-200 text-slate-600">모임 종료</Badge>;
-                      if (event.eventStatus === 'proposal') return <Badge variant="outline">모임 제안</Badge>;
-                      if (event.eventStatus === 'confirmed') return <Badge variant="default" className="bg-green-600 hover:bg-green-700">진행 확정</Badge>;
-                      return <Badge variant="secondary">개설 진행중</Badge>;
-                    })()}
-                    <div className="flex gap-2 mt-4">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleOpenEditDialog(event)}
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        수정
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="active">
+                활성 모임 ({myEvents?.length || 0})
+              </TabsTrigger>
+              <TabsTrigger value="deleted">
+                삭제된 모임 ({deletedEvents?.length || 0})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="active" className="mt-4">
+              <div className="grid gap-4">
+                {myEvents && myEvents.length > 0 ? (
+                  myEvents.map((event) => (
+                    <Card key={event.id}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle>{event.title}</CardTitle>
+                            <CardDescription className="mt-2">
+                              {event.description}
+                            </CardDescription>
+                          </div>
+                          <Badge
+                            variant={
+                              event.status === "approved"
+                                ? "default"
+                                : event.status === "rejected"
+                                  ? "destructive"
+                                  : "secondary"
+                            }
+                          >
+                            {event.status === "approved"
+                              ? "승인됨"
+                              : event.status === "rejected"
+                                ? "거부됨"
+                                : "승인 대기"}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span>{event.date || "일시 미정"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span>{event.timeRange || "시간 미정"}</span>
+                          </div>
+                        </div>
+                        {event.keywords && (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">키워드: </span>
+                            {event.keywords}
+                          </div>
+                        )}
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">참가비: </span>
+                          {event.fee === 0 ? "무료" : `${event.fee.toLocaleString()}원`}
+                        </div>
+                        {(() => {
+                          const isCompleted = isEventCompleted(event.date, event.timeRange);
+                          if (isCompleted) return <Badge variant="secondary" className="bg-slate-200 text-slate-600">모임 종료</Badge>;
+                          if (event.eventStatus === 'proposal') return <Badge variant="outline">모임 제안</Badge>;
+                          if (event.eventStatus === 'confirmed') return <Badge variant="default" className="bg-green-600 hover:bg-green-700">진행 확정</Badge>;
+                          return <Badge variant="secondary">개설 진행중</Badge>;
+                        })()}
+                        <div className="flex gap-2 mt-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenEditDialog(event)}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            수정
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(event.id)}
+                            disabled={deleteEvent.isPending}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            삭제
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <p className="text-muted-foreground mb-4">
+                        아직 생성한 모임이 없습니다.
+                      </p>
+                      <Button onClick={handleOpenCreateDialog}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        첫 모임 만들기
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDelete(event.id)}
-                        disabled={deleteEvent.isPending}
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        삭제
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground mb-4">
-                    아직 생성한 모임이 없습니다.
-                  </p>
-                  <Button onClick={handleOpenCreateDialog}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    첫 모임 만들기
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="deleted" className="mt-4">
+              <div className="grid gap-4">
+                {deletedEvents && deletedEvents.length > 0 ? (
+                  deletedEvents.map((event) => (
+                    <Card key={event.id} className="border-dashed opacity-75">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle className="text-muted-foreground">{event.title}</CardTitle>
+                            <CardDescription className="mt-2">
+                              {event.description}
+                            </CardDescription>
+                          </div>
+                          <Badge variant="secondary" className="bg-red-100 text-red-700">
+                            삭제됨
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span>{event.date || "일시 미정"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span>{event.timeRange || "시간 미정"}</span>
+                          </div>
+                        </div>
+                        {event.deletedAt && (
+                          <div className="text-sm text-red-600">
+                            삭제일: {new Date(event.deletedAt).toLocaleDateString('ko-KR')}
+                          </div>
+                        )}
+                        <div className="flex gap-2 mt-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRestore(event.id)}
+                            disabled={restoreEvent.isPending}
+                          >
+                            <RotateCcw className="w-4 h-4 mr-1" />
+                            복원하기
+                          </Button>
+                          {user?.role === 'admin' && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleHardDelete(event.id)}
+                              disabled={hardDeleteEvent.isPending}
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              완전삭제
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <p className="text-muted-foreground">
+                        삭제된 모임이 없습니다.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 

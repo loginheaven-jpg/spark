@@ -62,6 +62,7 @@ export const events = mysqlTable("events", {
   materialContent: text("materialContent"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  deletedAt: timestamp("deletedAt"), // 소프트 삭제용 (null이면 활성)
 });
 
 export type Event = typeof events.$inferSelect;

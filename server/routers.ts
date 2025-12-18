@@ -5,7 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import * as db from "./db";
-import { sendEventApprovalEmail, sendRegistrationConfirmationEmail, sendEventConfirmationEmail, sendPasswordResetEmail, sendPasswordChangedEmail } from "./email";
+import { sendEventApprovalEmail, sendRegistrationConfirmationEmail, sendEventConfirmationEmail, sendPasswordResetEmail, sendPasswordChangedEmail, sendParticipantNotification } from "./email";
 import { registerUser, verifyLogin } from "./auth";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -540,7 +540,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    // 모임 삭제 (주관자 본인 또는 슈퍼 어드민)
+    // 모임 삭제 - 소프트 삭제 (주관자 본인 또는 슈퍼 어드민)
     delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -570,9 +570,66 @@ export const appRouter = router({
           throw new TRPCError({ code: 'FORBIDDEN', message: '권한이 없습니다.' });
         }
 
+        // 소프트 삭제 (deletedAt 설정)
+        await db.softDeleteEvent(input.id);
+        return { success: true };
+      }),
+
+    // 모임 복원 (주관자 본인 또는 슈퍼 어드민)
+    restore: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const localUserId = ctx.req.cookies?.local_user_id;
+        if (!localUserId) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '로그인이 필요합니다.' });
+        }
+
+        const userId = parseInt(localUserId, 10);
+        if (isNaN(userId)) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '유효하지 않은 세션입니다.' });
+        }
+
+        const user = await db.getUserById(userId);
+        if (!user) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '사용자를 찾을 수 없습니다.' });
+        }
+
+        const event = await db.getEventById(input.id);
+        if (!event) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '모임을 찾을 수 없습니다.' });
+        }
+
+        // 권한 확인: 주관자 본인 또는 슈퍼 어드민
+        if (event.organizerId !== userId && user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: '권한이 없습니다.' });
+        }
+
+        await db.restoreEvent(input.id);
+        return { success: true };
+      }),
+
+    // 완전 삭제 (관리자 전용)
+    hardDelete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const event = await db.getEventById(input.id);
+        if (!event) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '모임을 찾을 수 없습니다.' });
+        }
+
         await db.deleteEvent(input.id);
         return { success: true };
       }),
+
+    // 삭제된 내 모임 목록
+    listMyDeleted: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getDeletedEventsByOrganizer(ctx.user.id);
+    }),
+
+    // 삭제된 모든 모임 목록 (관리자)
+    listAllDeleted: adminProcedure.query(async () => {
+      return await db.getAllDeletedEvents();
+    }),
 
     // 모임 승인/거부 (관리자)
     updateStatus: adminProcedure
@@ -610,6 +667,83 @@ export const appRouter = router({
       .input(z.object({ eventId: z.number() }))
       .query(async ({ input }) => {
         return await db.getRegistrationsByEvent(input.eventId);
+      }),
+
+    // 참여자에게 공지 이메일 발송 (주관자 또는 관리자)
+    notifyParticipants: publicProcedure
+      .input(z.object({
+        eventId: z.number(),
+        subject: z.string().min(1, '제목을 입력해주세요'),
+        content: z.string().min(1, '내용을 입력해주세요'),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const localUserId = ctx.req.cookies?.local_user_id;
+        if (!localUserId) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '로그인이 필요합니다.' });
+        }
+
+        const userId = parseInt(localUserId, 10);
+        if (isNaN(userId)) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '유효하지 않은 세션입니다.' });
+        }
+
+        const user = await db.getUserById(userId);
+        if (!user) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '사용자를 찾을 수 없습니다.' });
+        }
+
+        const event = await db.getEventById(input.eventId);
+        if (!event) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '모임을 찾을 수 없습니다.' });
+        }
+
+        // 권한 확인: 주관자 본인 또는 관리자
+        if (event.organizerId !== userId && user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: '권한이 없습니다.' });
+        }
+
+        // 참여자 목록 가져오기
+        const registrations = await db.getRegistrationsByEvent(input.eventId);
+        if (registrations.length === 0) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '참여자가 없습니다.' });
+        }
+
+        // 이메일 발송
+        const eventUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/events/${input.eventId}`;
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const reg of registrations) {
+          if (reg.participantEmail && reg.participantName) {
+            try {
+              const sent = await sendParticipantNotification(
+                reg.participantEmail,
+                reg.participantName,
+                event.title,
+                event.date,
+                event.timeRange,
+                input.subject,
+                input.content,
+                eventUrl
+              );
+              if (sent) {
+                successCount++;
+              } else {
+                failCount++;
+              }
+            } catch (error) {
+              console.error(`[Email] Failed to notify ${reg.participantEmail}:`, error);
+              failCount++;
+            }
+          }
+        }
+
+        return {
+          success: true,
+          successCount,
+          failCount,
+          totalCount: registrations.length,
+        };
       }),
   }),
 

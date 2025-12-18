@@ -192,3 +192,41 @@ export async function sendPasswordChangedEmail(
     content,
   });
 }
+
+/**
+ * Send announcement notification to event participant
+ */
+export async function sendParticipantNotification(
+  participantEmail: string,
+  participantName: string,
+  eventTitle: string,
+  eventDate: string | null,
+  eventTimeRange: string | null,
+  notificationSubject: string,
+  notificationContent: string,
+  eventUrl: string
+): Promise<boolean> {
+  const subject = `[SPARK] ${eventTitle} - ${notificationSubject}`;
+  const content = `
+안녕하세요, ${participantName}님
+
+${eventTitle} 모임의 새로운 공지입니다.
+
+────────────────────────────
+${notificationContent}
+────────────────────────────
+
+📌 모임 정보:
+- 일시: ${eventDate || "일시 미정"} ${eventTimeRange || ""}
+- 장소: 온라인
+
+모임 상세 보기: ${eventUrl}
+────────────────────────────
+  `.trim();
+
+  return await sendEmail({
+    to: participantEmail,
+    subject,
+    content,
+  });
+}

@@ -4,10 +4,13 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Users, CheckCircle2, Mail, Phone, Copy, Share2, FileText, Lock, ExternalLink } from "lucide-react";
+import { Calendar, Clock, Users, CheckCircle2, Mail, Phone, Copy, Share2, FileText, Lock, ExternalLink, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation, useRoute } from "wouter";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { AuthModal } from "@/components/AuthModal";
 
 import { ReviewSection } from "@/components/ReviewSection";
@@ -18,6 +21,9 @@ export default function EventDetailPage() {
   const eventId = params?.id ? parseInt(params.id, 10) : null;
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [notifySubject, setNotifySubject] = useState("");
+  const [notifyContent, setNotifyContent] = useState("");
 
   const { data: localUser } = trpc.localAuth.me.useQuery();
   const { data: event, isLoading } = trpc.events.getById.useQuery(
@@ -35,6 +41,7 @@ export default function EventDetailPage() {
 
   const registerForEvent = trpc.participants.register.useMutation();
   const unregisterFromEvent = trpc.participants.unregister.useMutation();
+  const notifyParticipants = trpc.events.notifyParticipants.useMutation();
   const utils = trpc.useUtils();
 
   useEffect(() => {
@@ -91,6 +98,37 @@ export default function EventDetailPage() {
       }
     }
   };
+
+  const handleNotifyParticipants = async () => {
+    if (!notifySubject.trim() || !notifyContent.trim()) {
+      toast.error("제목과 내용을 모두 입력해주세요.");
+      return;
+    }
+
+    try {
+      const result = await notifyParticipants.mutateAsync({
+        eventId: eventId!,
+        subject: notifySubject.trim(),
+        content: notifyContent.trim(),
+      });
+
+      if (result.successCount > 0) {
+        toast.success(`${result.successCount}명에게 공지가 발송되었습니다.`);
+      }
+      if (result.failCount > 0) {
+        toast.warning(`${result.failCount}명에게 발송 실패`);
+      }
+
+      setShowNotifyModal(false);
+      setNotifySubject("");
+      setNotifyContent("");
+    } catch (error: any) {
+      toast.error(error.message || "공지 발송 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 주관자 또는 관리자인지 확인
+  const canNotify = localUser && event && (localUser.id === event.organizerId || localUser.role === 'admin');
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "일시 미정";
@@ -203,6 +241,15 @@ export default function EventDetailPage() {
                   <Share2 className="h-4 w-4 mr-1" />
                   모임 공유
                 </Button>
+                {canNotify && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowNotifyModal(true)}
+                  >
+                    <Send className="h-4 w-4 mr-1" />
+                    공지 발송
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -440,6 +487,57 @@ export default function EventDetailPage() {
               확인
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notify Participants Modal */}
+      <Dialog open={showNotifyModal} onOpenChange={setShowNotifyModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>참여자 공지 발송</DialogTitle>
+            <DialogDescription>
+              수신 대상: 참여자 {participants?.length || 0}명
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="notify-subject">제목</Label>
+              <Input
+                id="notify-subject"
+                placeholder="예: Zoom 링크 안내"
+                value={notifySubject}
+                onChange={(e) => setNotifySubject(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notify-content">내용</Label>
+              <Textarea
+                id="notify-content"
+                placeholder="참여자들에게 전달할 내용을 입력하세요"
+                className="min-h-[150px]"
+                value={notifyContent}
+                onChange={(e) => setNotifyContent(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowNotifyModal(false);
+                setNotifySubject("");
+                setNotifyContent("");
+              }}
+            >
+              취소
+            </Button>
+            <Button
+              onClick={handleNotifyParticipants}
+              disabled={notifyParticipants.isPending || !notifySubject.trim() || !notifyContent.trim()}
+            >
+              {notifyParticipants.isPending ? "발송 중..." : "발송"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div >
