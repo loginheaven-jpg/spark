@@ -16,14 +16,19 @@ function getTransporter(): nodemailer.Transporter {
       console.warn("[Email] SMTP credentials not configured. Using test mode.");
     }
 
+    console.log(`[Email] Creating transporter: host=${ENV.smtpHost}, port=${ENV.smtpPort}, user=${ENV.smtpUser ? '***' : 'empty'}`);
+
     transporter = nodemailer.createTransport({
       host: ENV.smtpHost,
       port: ENV.smtpPort,
-      secure: false, // TLS
+      secure: false, // use STARTTLS
       auth: {
         user: ENV.smtpUser,
         pass: ENV.smtpPass,
       },
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
   }
   return transporter;
